@@ -1,0 +1,11 @@
+{
+  "name": "tranquillity",
+  "version": "0.0.1",
+  "description": "Multi-purpose library",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Fred Pirani",
+  "license": "ISC"
+}
