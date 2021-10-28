@@ -82,6 +82,9 @@ class IConnection(ABC):
 
     @property
     def is_connected(self) -> bool:
+        '''
+        Property indicating whether the client is connected to the database.
+        '''
         return self._is_connected()
 
     @abstractmethod
