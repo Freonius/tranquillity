@@ -52,7 +52,7 @@ class IDBObject(ABC, Generic[T, U]):
 
     @classmethod
     def from_body(cls, key: Union[str, None] = None) -> 'IDBObject':
-        pass
+        c: 'IDBObject' = cls({})
 
     @classmethod
     def get(cls, query: Union[IQuery, None] = None, redis: Union[None,] = None) -> Union['IDBObject', List['IDBObject'], None]:

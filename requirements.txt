@@ -22,3 +22,4 @@ SQLAlchemy==1.4.22
 CouchDB==1.2
 spring-config-client==0.2
 PyYAML==5.4.1
+CouchDB==1.2
