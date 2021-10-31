@@ -16,7 +16,7 @@ class Env(ISettings):
 
     @property
     def path(self) -> List[str]:
-        return self.get('path', '').split(';')
+        return str(self.get('path', '')).split(';')
 
 
 class Ini(ISettings):
@@ -47,35 +47,3 @@ class Json(ISettings):
 class SpringConfig(ISettings):
     def __init__(self) -> None:
         super().__init__()
-
-
-class Data(ISettings):
-    def __init__(self) -> None:
-        super().__init__()
-
-
-class Connections(ISettings):
-    def __init__(self) -> None:
-        super().__init__()
-
-
-class Flask(ISettings):
-    def __init__(self) -> None:
-        super().__init__()
-
-    @property
-    def host(self) -> str:
-        return self.get('host')
-
-    @property
-    def port(self) -> int:
-        return self.get_int('port')
-
-
-class AppSettings(ISettings):
-    def __init__(self) -> None:
-        super().__init__()
-
-    @property
-    def connections(self) -> Connections:
-        pass
