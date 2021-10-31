@@ -1,31 +1,42 @@
-from typing import Union
+'''
+Module for CouchDb operations
+'''
+from typing import Callable, Set, Union
 from couchdb import Server, Session, ServerError, Unauthorized, ResourceNotFound
 from couchdb.client import Database
 from ..interfaces import IConnection
 from ..exceptions import ConnectionException
 
+
 class CouchDb(IConnection):
+    '''
+    CouchDb connection.
+    '''
     _client: Union[Server, None] = None
     _session: Session = Session()
     _token: Union[str, None] = None
     _db: Union[Database, None] = None
 
     def connect(self) -> None:
-        _host: str = self._settings['couchdb.host']
-        _port: int = int(self._settings['couchdb.port'])
+        _ks: Callable[[str], Set[str]] = lambda x: {
+            x,
+            f'couchdb.{x}',
+            f'conns.couchdb.{x}'
+        }
+        _host: Union[str, None] = self._settings.lookup(_ks('host'))
+        _port: int = int(str(self._settings.lookup(_ks('port'), '5984')))
         _protocol: Union[str, None] = None
         try:
-            _protocol = self._settings['couchdb.protocol']
+            _protocol = self._settings.lookup(_ks('protocol'), 'http')
         except KeyError:
             pass
         if _protocol is None:
             _protocol = 'http'
-        # TODO: Check whether there are session params
         _username: Union[str, None] = None
         _password: Union[str, None] = None
         try:
-            _username = self._settings['couchdb.user']
-            _password = self._settings['couchdb.password']
+            _username = self._settings.lookup(_ks('user'))
+            _password = self._settings.lookup(_ks('password'))
         except KeyError:
             pass
         try:
@@ -34,7 +45,8 @@ class CouchDb(IConnection):
             self._log_debug(f'Connected to CouchDb {_url}')
             del _url
             if _username is not None and _password is not None:
-                _token: Union[str, None] = self._client.login(_username, _password,)
+                _token: Union[str, None] = self._client.login(
+                    _username, _password,)
                 if isinstance(_token, str):
                     self._token = _token
                 else:
@@ -47,7 +59,8 @@ class CouchDb(IConnection):
         del _username, _password, _host, _port, _protocol
         if self._client is None:
             raise ConnectionException('Could not connect to CouchDB')
-        _db_name: str = self._settings['couchdb.db']
+        _db_name: Union[str, None] = self._settings.lookup(_ks('db'))
+        del _ks
         _db: Union[Database, None] = None
         try:
             if _db_name in self._client:
@@ -59,6 +72,7 @@ class CouchDb(IConnection):
         self._db = _db
 
     def _is_connected(self) -> bool:
+        # pylint: disable=broad-except
         if self._client is None:
             return False
         if self._token is None:
@@ -67,6 +81,7 @@ class CouchDb(IConnection):
             except Exception:
                 return False
         return bool(self._client.verify_token(self._token))
+        # pylint: enable=broad-except
 
     def close(self) -> None:
         if self._token is not None and self._client is not None:
@@ -74,4 +89,3 @@ class CouchDb(IConnection):
         self._db = None
         self._token = None
         self._client = None
-        

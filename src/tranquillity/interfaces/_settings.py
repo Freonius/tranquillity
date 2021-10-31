@@ -1,32 +1,30 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Set, Tuple, Union
 from ..exceptions import NotAllowedOperation, ConversionError
+from ..conversions._dict import flatten_dict
+
 
 class ISettings(ABC):
+    '''
+    Interface class for all settings.
+    '''
     _data: Dict[str, str] = {}
     _raise_on_missing: bool = True
-    _defaults: Union[Dict[str, Any], None] = None
-    _debug: bool = False
+    _defaults: Union[Dict[str, str], None] = None
     _read_only: bool = False
 
     def _config(self,
-                 file: Union[str, None] = None,
-                 settings_type: Union[str, None] = None,
-                 debug: bool = False,
-                 data: Union[Dict[str, Any], None] = None,
-                 defaults: Union[Dict[str, Any], None] = None,
-                 required_fields: Union[List[str], None] = None,
-                 raise_on_missing: bool = True,
-                 path: Union[str, None] = None,
-                 file_ext: Union[str, None] = None,
-                 read_only: bool = False,
-                 dump_if_not_exists: bool = True,
-                 **kwargs):
+                data: Dict[str, Any],
+                defaults: Union[Dict[str, Any], None] = None,
+                required_fields: Union[List[str], Set[str], None] = None,
+                raise_on_missing: bool = True,
+                read_only: bool = False):
         if defaults is not None and isinstance(defaults, dict):
-            pass
+            self._defaults = flatten_dict(defaults)
         elif defaults is not None:
             if __debug__:
-                raise TypeError(f'defaults must be of type None or dict, got {type(defaults)}')
+                raise TypeError(
+                    f'defaults must be of type None or dict, got {type(defaults)}')
             else:
                 raise TypeError('defaults must be of type None or dict')
         # read_only
@@ -40,23 +38,36 @@ class ISettings(ABC):
             else:
                 self._read_only = True
         elif isinstance(read_only, str):
-            self._read_only = False if str(read_only).lower() in {'f', 'false', 'n', 'no'} else True
+            self._read_only = False if str(read_only).lower() in {
+                'f', 'false', 'n', 'no'} else True
         else:
             if __debug__:
-                raise TypeError(f'read_only must be of type bool, got {type(read_only)}')
+                raise TypeError(
+                    f'read_only must be of type bool, got {type(read_only)}')
             else:
                 raise TypeError('read_only must be of type bool')
 
-        if isinstance(debug, bool):
-            self._debug = debug
-        elif debug is None:
-            self._debug = False
+        if raise_on_missing is not None and isinstance(raise_on_missing, bool):
+            self._raise_on_missing = raise_on_missing
+        elif raise_on_missing is None:
+            self._raise_on_missing = False
         else:
-            self._debug = __debug__
+            self._raise_on_missing = True
 
-    @abstractmethod
-    def __load__(self) -> None:
-        pass
+        if not isinstance(data, dict):
+            raise TypeError('data must be of type dict')
+
+        self._data = flatten_dict(data)
+
+        if required_fields is not None and \
+                isinstance(required_fields, (list, set)) and len(required_fields) > 0:
+            key: str
+            for key in required_fields:
+                key = key.lower().strip()
+                if key not in self._data.keys() or \
+                        (self._defaults is not None and key not in self._defaults.keys()):
+                    raise KeyError(f'key "{key}" missing')
+            del key
 
     def __getitem__(self, key: str) -> Union[str, None]:
         return self.get(key=key, default=None)
@@ -65,6 +76,9 @@ class ISettings(ABC):
         self.set(key=key, val=val)
 
     def get(self, key: str, default: Union[str, None] = None) -> Union[str, None]:
+        '''
+        Find the value given a key.
+        '''
         if not isinstance(key, str):
             raise TypeError(f'key must be of type str, got {type(key)}')
         key = key.lower()
@@ -72,7 +86,8 @@ class ISettings(ABC):
             if default is not None:
                 if isinstance(default, str):
                     return default
-                raise TypeError(f'default value must be of type str, got {type(default)}')
+                raise TypeError(
+                    f'default value must be of type str, got {type(default)}')
             elif self._defaults is not None:
                 if key in self._defaults.keys():
                     return self._defaults[key]
@@ -84,6 +99,9 @@ class ISettings(ABC):
         return self._data[key]
 
     def set(self, key: str, val: str) -> None:
+        '''
+        Set or update a value.
+        '''
         if self._read_only:
             raise NotAllowedOperation(f'{type(self)} was marked as read only')
         if not isinstance(key, str):
@@ -92,11 +110,16 @@ class ISettings(ABC):
             raise TypeError(f'val must be of type str, got {type(val)}')
         key = key.lower()
         self._data[key] = val
+        self._update(key, val)
 
     def get_int(self, key: str, default: Union[int, None] = None) -> Union[int, None]:
+        '''
+        Get a value as an int.
+        '''
         if default is not None and not isinstance(default, int):
             raise TypeError('default must be of type int')
-        tmp: Union[str, None] = self.get(key, str(default) if default is not None else None)
+        tmp: Union[str, None] = self.get(
+            key, str(default) if default is not None else None)
         if tmp is None:
             return None
         try:
@@ -105,20 +128,29 @@ class ISettings(ABC):
             raise ConversionError(f'Could not convert "{tmp}" to int') from ex
 
     def get_float(self, key: str, default: Union[float, None] = None) -> Union[float, None]:
+        '''
+        Get a value as a float.
+        '''
         if default is not None and not isinstance(default, float):
             raise TypeError('default must be of type float')
-        tmp: Union[str, None] = self.get(key, str(default) if default is not None else None)
+        tmp: Union[str, None] = self.get(
+            key, str(default) if default is not None else None)
         if tmp is None:
             return None
         try:
             return float(tmp)
         except ValueError as ex:
-            raise ConversionError(f'Could not convert "{tmp}" to float') from ex
+            raise ConversionError(
+                f'Could not convert "{tmp}" to float') from ex
 
     def get_bool(self, key: str, default: Union[bool, None] = None) -> bool:
+        '''
+        Get a value as a bool.
+        '''
         if default is not None and not isinstance(default, float):
             raise TypeError('default must be of type float')
-        tmp: Union[str, None] = self.get(key, str(default) if default is not None else None)
+        tmp: Union[str, None] = self.get(
+            key, str(default) if default is not None else None)
         if tmp is None:
             return False
         tmp = tmp.lower().strip()
@@ -134,6 +166,41 @@ class ISettings(ABC):
         else:
             return False
 
+    def lookup(self,
+               keys: Union[List[str], Set[str], Tuple[str, ...]],
+               default: Union[str, None] = None) -> Union[str, None]:
+        '''
+        Find a value in a set of keys.
+        '''
+        if not isinstance(keys, (list, set, tuple)):
+            raise TypeError('keys must be fo type list')
+        if default is not None and not isinstance(default, str):
+            raise TypeError('default must be of type str or None')
+        if len(keys) == 0:
+            pass
+        _old_raise: bool = self._raise_on_missing
+        self._raise_on_missing = True
+        key: str
+        val: Union[str, None] = None
+        for key in keys:
+            try:
+                val = self.get(key)
+                break
+            except KeyError:
+                continue
+        try:
+            del key
+        except NameError:
+            pass
+        self._raise_on_missing = _old_raise
+        del _old_raise
+        if val is None:
+            if default is None and self._raise_on_missing:
+                raise KeyError(f'keys {keys} not found')
+            else:
+                return default
+        return val
+
     def __iter__(self) -> Iterable[Tuple[str, str]]:
         key: str
         val: str
@@ -141,9 +208,16 @@ class ISettings(ABC):
             yield key, val
 
     def keys(self) -> Iterable[str]:
+        '''
+        Returns all the keys in the settings.
+        '''
         key: str
         for key in self._data.keys():
             yield key
 
     def __str__(self) -> str:
         return str(dict(self))
+
+    @abstractmethod
+    def _update(self, key: str, val: str) -> None:
+        pass
