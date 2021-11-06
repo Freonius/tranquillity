@@ -1,6 +1,6 @@
 from os import environ
 from typing import Any, Dict, List, Union
-from ..interfaces._settings import ISettings
+from .__interface import ISettings
 
 
 class Env(ISettings):

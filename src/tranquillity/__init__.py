@@ -11,7 +11,6 @@ from . import exceptions
 from . import files
 from . import gis
 from . import html
-from . import interfaces
 from . import logger
 from . import path
 from . import query

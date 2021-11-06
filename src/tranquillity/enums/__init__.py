@@ -20,14 +20,6 @@ class ConnType(Enum):
     ORACLE = auto()
 
 
-class HttpVerb(Enum):
-    HEAD = 'HEAD'
-    GET = 'GET'
-    POST = 'POST'
-    PUT = 'PUT'
-    DELETE = 'DELETE'
-
-
 class SettingsType(Enum):
     ENV = auto()
     SQLITE = auto()
@@ -49,18 +41,3 @@ class LogType(Enum):
     SQL = auto()
     ELASTIC = auto()
     RABBITMQ = auto()
-
-
-class Allowance(IntFlag):
-    NONE = 0
-    READ = 1
-    WRITE = 2
-    ADD = 4
-    DELETE = 8
-
-
-class Role(Enum):
-    ADMIN = Allowance.ADD + Allowance.DELETE + Allowance.READ + Allowance.WRITE
-    READ_ONLY = Allowance.READ
-    READ_WRITE = Allowance.ADD + Allowance.READ + Allowance.WRITE
-    UNAUTHORIZED = Allowance.NONE

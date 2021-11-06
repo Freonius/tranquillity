@@ -1,3 +1,6 @@
+'''
+Interface for different kind of settings.
+'''
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, List, Set, Tuple, Union
 from ..exceptions import NotAllowedOperation, ConversionError

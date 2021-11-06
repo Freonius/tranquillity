@@ -5,7 +5,8 @@ from typing import Dict, Type, Union
 from logging import Logger
 from types import TracebackType
 from abc import ABC, abstractmethod
-from ._settings import ISettings
+from ..settings.__interface import ISettings
+
 
 class IConnection(ABC):
     '''
@@ -15,14 +16,15 @@ class IConnection(ABC):
     _log: Union[None, Logger] = None
 
     def __init__(self,
-                 settings: Union[ISettings, Dict[str, Union[str, int]], None] = None,
+                 settings: Union[ISettings,
+                                 Dict[str, Union[str, int]], None] = None,
                  log: Union[Logger, None] = None) -> None:
         self.parameters(settings)
         if log is not None:
             self.logger(log)
 
     def parameters(self,
-                 settings: Union[ISettings, Dict[str, Union[str, int]], None] = None) -> None:
+                   settings: Union[ISettings, Dict[str, Union[str, int]], None] = None) -> None:
         '''
         Set the parameters for the connection.
         '''
@@ -35,7 +37,8 @@ class IConnection(ABC):
         elif settings is None:
             # TODO: Get data from environ
             return
-        raise TypeError(f'Expected ISettings, dict, or None type, got {type(settings)}')
+        raise TypeError(
+            f'Expected ISettings, dict, or None type, got {type(settings)}')
 
     def logger(self, log: Logger) -> None:
         '''
@@ -74,8 +77,8 @@ class IConnection(ABC):
                  exception_value: Union[Exception, None],
                  exception_traceback: Union[TracebackType, None]) -> None:
         if exception_type is not None and \
-               exception_value is not None and \
-               exception_traceback is not None:
+                exception_value is not None and \
+                exception_traceback is not None:
             self._log_err(f'Got exception of type: {exception_type}')
             self._log_excp(exception_value)
         self.close()
