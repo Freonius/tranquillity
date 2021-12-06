@@ -12,6 +12,8 @@ class HttpVerb(Enum):
 
 
 class Role(Enum):
+    MACHINE = auto()
+    SUPERADMIN = auto()
     ADMIN = auto()
     USER = auto()
     NOT_LOGGED = auto()
