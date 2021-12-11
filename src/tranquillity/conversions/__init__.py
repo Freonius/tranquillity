@@ -1,0 +1,1 @@
+from ._types import type_check

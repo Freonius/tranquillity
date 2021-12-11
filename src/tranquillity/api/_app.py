@@ -71,7 +71,7 @@ class App(Flask):
             'status': status >= 200 and status < 400,
             'message': message if message is not None else 'OK',
             'cached': from_cache,
-            'date': datetime.now().strftime('%Y.%m.%d-%H:%M:%S')
+            'date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }), status
 
     def create_blueprint(self, name: str, url_prefix: str, obj: Union[Type[IDBObject], None] = None) -> ApiBlueprint:
@@ -82,23 +82,23 @@ class App(Flask):
             return App.result(None)
 
         if obj is not None:
-            @bp.rule('/', method='GET', role=[''])
+            @bp.rule(rule='/', method='GET', role=[''])
             def get_all():
                 return self.result(None)
 
-            @bp.rule('/', method=['POST'], role=[])
+            @bp.rule(rule='/', method=['POST'], role=[])
             def create_new():
                 return self.result(None)
 
-            @bp.rule('/<obj_id>', method=['GET'], role=[])
+            @bp.rule(rule='/<obj_id>', method=['GET'], role=[])
             def get_one(obj_id: Union[str, int]):
                 return self.result(None)
 
-            @bp.rule('/<obj_id>', method=['PUT'], role=[])
+            @bp.rule(rule='/<obj_id>', method=['PUT'], role=[])
             def edit_one(obj_id: Union[str, int]):
                 return self.result(None)
 
-            @bp.rule('/<obj_id>', method=['DELETE'], role=[])
+            @bp.rule(rule='/<obj_id>', method=['DELETE'], role=[])
             def delete_one(obj_id: Union[str, int]):
                 return self.result(None)
 
