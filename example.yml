@@ -1,0 +1,74 @@
+app:
+  name: Tranquillity
+  base_address:
+    local: http://localhost
+    qa: http://presidents-example-tranquillity-qa.com
+    dev: http://presidents-example-tranquillity-dev.com
+    prod: http://presidents-example-tranquillity.com
+
+conn:
+  mongo:
+    host: mongo
+    port: 1234
+    user: root
+    password: example
+    db: example
+  elasticsearch:
+    host: es
+    port: 1234
+    user: user
+    password: password
+    protocol: http
+
+log:
+  loggers:
+    stream:
+      level: debug
+    file:
+      level: debug
+      file: /app/logs/{{app.name}}.log
+    elasticsearch:
+      level: info
+      connection: elasticsearch
+    
+objects:
+  president:
+    connection: mongo
+    api:
+      prefix: users
+      methods:
+        get:
+          level: public
+        post:
+          level: sa
+        put:
+          level: sa
+        delete:
+          level: sa
+    ui:
+      container:
+        column:
+          - row:
+              - text:
+                  field: first_name
+              - text:
+                  value: ' '
+              - text:
+                  field: last_name
+          - row:
+              - image:
+                  field: image
+              - text:
+                  field: description
+                  multiline: true
+    fields:
+      first_name:
+        type: string
+        nullable: false
+        constraints:
+          - not_empty
+          - alpha
+        normalize:
+          - lower
+        filter: true
+        

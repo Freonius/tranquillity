@@ -4,18 +4,17 @@ from logging import DEBUG, INFO, ERROR, WARNING, LogRecord, StreamHandler, getLo
 from typing import List, Union, Dict
 from datetime import datetime
 from traceback import FrameSummary, StackSummary, extract_tb
-from uuid import uuid4
 from sqlalchemy.sql import text
 from flask import Flask
 from ..elasticsearch.conn import Elastic
 from ..mongo.conn import Mongo
 from ..enums import LogType
-from ..rabbitmq import Rabbit
+from ..connections._rabbit import Rabbit
 from ..sql import client as sql_client
 from ..settings.__interface import ISettings
+from ..settings import Env
 from ..interfaces import ILogHandler
 from ..objects.classes import CustomLogRecord
-from ..envs import Environ, IniFile
 from ..shell._shell import Shell
 
 
@@ -25,7 +24,7 @@ from ..shell._shell import Shell
 class CustomLogger(getLoggerClass()):
     _settings: ISettings
 
-    def __init__(self, name_log_file, module_name: str, frmt=None, level: int = DEBUG, settings: Union[ISettings, None] = None):
+    def __init__(self, name_log_file: str, module_name: str, frmt: Union[str, None] = None, level: int = DEBUG, settings: Union[ISettings, None] = None):
         if level is DEBUG and not __debug__:
             level = INFO
         if frmt is None:
@@ -34,7 +33,7 @@ class CustomLogger(getLoggerClass()):
         else:
             self.frmt = frmt
         if settings is None:
-            settings = Environ()
+            settings = Env()
         self._settings = settings
         self.level = level
         self.name_log_file = name_log_file
@@ -43,14 +42,15 @@ class CustomLogger(getLoggerClass()):
         self.formatter = Formatter(self.frmt)
         super().__init__(name=name_log_file, level=level)
 
-
     def add_custom_handler(self, tipo: LogType, level: Union[int, None] = None, override_name: Union[str, None] = None):
         if tipo is LogType.STREAM:
             console_logger = StreamHandler(stdout)
         elif tipo is LogType.ELASTIC:
-            console_logger = elastic_log_handler(self.module_name, self._settings)
+            console_logger = elastic_log_handler(
+                self.module_name, self._settings)
         elif tipo is LogType.MONGO:
-            console_logger = mongo_log_handler(self.module_name, self._settings)
+            console_logger = mongo_log_handler(
+                self.module_name, self._settings)
         elif tipo is LogType.SQL:
             console_logger = sql_log_handler(self.module_name, self._settings)
         elif tipo is LogType.FILE:
@@ -59,7 +59,8 @@ class CustomLogger(getLoggerClass()):
             else:
                 console_logger = FileHandler(override_name)
         elif tipo is LogType.RABBITMQ:
-            console_logger = rabbit_log_handler(self.module_name, self._settings)
+            console_logger = rabbit_log_handler(
+                self.module_name, self._settings)
         else:
             return
         if level is None:
@@ -72,8 +73,9 @@ class CustomLogger(getLoggerClass()):
     def add_flask_handler(self, app: Flask, settings: ISettings) -> None:
         module_name = str(settings['log.module'])
         log_path: str = settings['log.path']
-        full_path: str = log_path + module_name.lower().replace(' ', '_').strip() + '_access.log'
-        console_logger = StreamHandler(stdout)     
+        full_path: str = log_path + module_name.lower().replace(' ', '_').strip() + \
+            '_access.log'
+        console_logger = StreamHandler(stdout)
         file_h = FileHandler(full_path)
         if __debug__:
             console_logger.setLevel(DEBUG)
@@ -85,6 +87,7 @@ class CustomLogger(getLoggerClass()):
         file_h.setFormatter(self.formatter)
         app.logger.addHandler(console_logger)
         app.logger.addHandler(file_h)
+
 
 class elastic_log_handler(ILogHandler):
     def _custom_emit(self, record: CustomLogRecord) -> None:
@@ -112,7 +115,8 @@ def rabbit_log_listener(record: CustomLogRecord, r: Rabbit):
     mongo_log: bool
     settings = r._settings
     try:
-        es_log = str(settings['log.elasticsearch']).strip().lower() in {'true', '1'}
+        es_log = str(settings['log.elasticsearch']
+                     ).strip().lower() in {'true', '1'}
     except Exception:
         es_log = False
     try:
@@ -155,7 +159,8 @@ class sql_log_handler(StreamHandler):
                 # Is error, not exception
             else:
                 stack_summary: StackSummary = extract_tb(record.exc_info[2])
-                frame_summaries: List[FrameSummary] = [frame_summary for frame_summary in stack_summary]
+                frame_summaries: List[FrameSummary] = [
+                    frame_summary for frame_summary in stack_summary]
                 if len(frame_summaries) > 0:
                     frm_sum: FrameSummary = frame_summaries[-1]
                     log_doc['exception'] = str({
@@ -199,19 +204,24 @@ def logger(module_name: Union[str, None] = None, settings: Union[ISettings, None
         log_path = '.'
     if not log_path.endswith(sep):
         log_path += sep
-    mylogger = custom_logger(log_path + module_name.lower().replace(' ', '_').strip() + '.log', module_name, settings=settings)
+    mylogger = custom_logger(log_path + module_name.lower().replace(
+        ' ', '_').strip() + '.log', module_name, settings=settings)
     if __debug__:
         mylogger.add_custom_handler(LogType.STREAM_LOG, DEBUG)
-        mylogger.add_custom_handler(LogType.FILE_LOG, DEBUG, log_path + 'debug.log')
+        mylogger.add_custom_handler(
+            LogType.FILE_LOG, DEBUG, log_path + 'debug.log')
     else:
         mylogger.add_custom_handler(LogType.STREAM_LOG, INFO)
-        mylogger.add_custom_handler(LogType.FILE_LOG, INFO, log_path + 'debug.log')
-    mylogger.add_custom_handler(LogType.FILE_LOG, WARNING, log_path + 'errors.log')
+        mylogger.add_custom_handler(
+            LogType.FILE_LOG, INFO, log_path + 'debug.log')
+    mylogger.add_custom_handler(
+        LogType.FILE_LOG, WARNING, log_path + 'errors.log')
     es_log: bool
     mongo_log: bool
     rabbit_log: bool
     try:
-        es_log = str(settings['log.elasticsearch']).strip().lower() in {'true', '1'}
+        es_log = str(settings['log.elasticsearch']
+                     ).strip().lower() in {'true', '1'}
     except Exception:
         es_log = False
     try:
@@ -219,7 +229,8 @@ def logger(module_name: Union[str, None] = None, settings: Union[ISettings, None
     except Exception:
         mongo_log = False
     try:
-        rabbit_log = str(settings['log.rabbit']).strip().lower() in {'true', '1'}
+        rabbit_log = str(settings['log.rabbit']
+                         ).strip().lower() in {'true', '1'}
     except Exception:
         rabbit_log = False
     if es_log:
@@ -230,4 +241,3 @@ def logger(module_name: Union[str, None] = None, settings: Union[ISettings, None
         mylogger.add_custom_handler(LogType.RABBIT_LOG)
 
     return mylogger
-
