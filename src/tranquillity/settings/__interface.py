@@ -101,6 +101,12 @@ class ISettings(ABC):
             return None
         return self._data[key]
 
+    def get_ns(self, key: str) -> str:
+        val: Union[str, None] = self.get(key)
+        if val is None:
+            raise KeyError
+        return val
+
     def set(self, key: str, val: str) -> None:
         '''
         Set or update a value.
@@ -169,6 +175,18 @@ class ISettings(ABC):
         else:
             return False
 
+    def get_int_ns(self, key: str) -> int:
+        val: Union[int, None] = self.get_int(key)
+        if val is None:
+            raise KeyError
+        return val
+
+    def get_float_ns(self, key: str) -> float:
+        val: Union[float, None] = self.get_float(key)
+        if val is None:
+            raise KeyError
+        return val
+
     def lookup(self,
                keys: Union[List[str], Set[str], Tuple[str, ...]],
                default: Union[str, None] = None) -> Union[str, None]:
@@ -202,6 +220,12 @@ class ISettings(ABC):
                 raise KeyError(f'keys {keys} not found')
             else:
                 return default
+        return val
+
+    def lookup_ns(self, keys: Union[List[str], Set[str], Tuple[str, ...]]) -> str:
+        val: Union[str, None] = self.lookup(keys)
+        if val is None:
+            raise KeyError
         return val
 
     def __iter__(self) -> Iterable[Tuple[str, str]]:
