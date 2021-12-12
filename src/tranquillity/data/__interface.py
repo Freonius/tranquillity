@@ -43,7 +43,7 @@ class IDBObject(ABC):
 
     # pylint: disable=invalid-name
     @property
-    def id(self) -> Union[int, str, Tuple[Union[str, int, datetime], ...], ObjectId, None]:
+    def id(self) -> Union[int, str, ObjectId, None]:
         '''
         Object id.
         '''
@@ -72,13 +72,19 @@ class IDBObject(ABC):
         raise NotImplementedError()
 
     def update(self) -> bool:
+        if self.id is None:
+            raise ValueError
         raise NotImplementedError()
 
     def delete(self) -> bool:
         raise NotImplementedError()
 
     def serialize(self) -> Dict[str, Any]:
-        raise NotImplementedError()
+        tmp: Union[List[Dict[str, Any]], Dict[str, Any],
+                   None] = self._schema.load(self._data, many=False)
+        if isinstance(tmp, dict):
+            return tmp
+        raise ValueError
 
     def json(self) -> Dict[str, Any]:
         return self.serialize()

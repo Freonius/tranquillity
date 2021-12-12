@@ -7,5 +7,5 @@ def dynamic(n: str, table: DataTable, fields: Iterable[DataField]) -> Type[IDBOb
     props: Dict[str, Any] = {}
     props['__table__'] = table
     props['__fields__'] = tuple(list(fields).copy())
-    out = type(n, (IDBObject,), props)
+    out: Type[IDBObject] = type(n, (IDBObject,), props)
     return out

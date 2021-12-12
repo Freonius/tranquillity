@@ -1,6 +1,6 @@
 from os import sep
 from sys import stdout
-from logging import DEBUG, INFO, ERROR, WARNING, LogRecord, StreamHandler, getLoggerClass, Formatter, FileHandler
+from logging import DEBUG, INFO, ERROR, WARNING, LogRecord, Logger, StreamHandler, getLoggerClass, Formatter, FileHandler
 from typing import List, Union, Dict
 from datetime import datetime
 from traceback import FrameSummary, StackSummary, extract_tb
@@ -21,7 +21,7 @@ from ..shell._shell import Shell
 # filterwarnings('ignore')
 
 
-class CustomLogger(getLoggerClass()):
+class CustomLogger(Logger):
     _settings: ISettings
 
     def __init__(self, name_log_file: str, module_name: str, frmt: Union[str, None] = None, level: int = DEBUG, settings: Union[ISettings, None] = None):
@@ -69,24 +69,6 @@ class CustomLogger(getLoggerClass()):
             console_logger.setLevel(level)
         console_logger.setFormatter(self.formatter)
         self.addHandler(console_logger)
-
-    def add_flask_handler(self, app: Flask, settings: ISettings) -> None:
-        module_name = str(settings['log.module'])
-        log_path: str = settings['log.path']
-        full_path: str = log_path + module_name.lower().replace(' ', '_').strip() + \
-            '_access.log'
-        console_logger = StreamHandler(stdout)
-        file_h = FileHandler(full_path)
-        if __debug__:
-            console_logger.setLevel(DEBUG)
-            file_h.setLevel(DEBUG)
-        else:
-            console_logger.setLevel(INFO)
-            file_h.setLevel(INFO)
-        console_logger.setFormatter(self.formatter)
-        file_h.setFormatter(self.formatter)
-        app.logger.addHandler(console_logger)
-        app.logger.addHandler(file_h)
 
 
 class elastic_log_handler(ILogHandler):

@@ -91,3 +91,9 @@ class CouchDb(IConnection):
         self._db = None
         self._token = None
         self._client = None
+
+    @property
+    def client(self) -> Server:
+        if self._client is None:
+            raise ConnectionException
+        return self._client

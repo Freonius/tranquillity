@@ -42,7 +42,7 @@ class Mongo(IConnection):
         except KeyError:
             pass
         _url: str = 'mongodb://'
-        if _username is None or _username.strip() == '' or _password is None or _password.strip() == '':
+        if not (_username is None or _username.strip() == '' or _password is None or _password.strip() == ''):
             _url += f'{quote_plus(_username)}:{quote_plus(_password)}@'
         _url += _host
         try:
