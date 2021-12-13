@@ -222,8 +222,22 @@ class ISettings(ABC):
                 return default
         return val
 
-    def lookup_ns(self, keys: Union[List[str], Set[str], Tuple[str, ...]]) -> str:
+    def lookup_ns(self, keys: Union[List[str], Set[str], Tuple[str, ...]], default: Union[int, None] = None) -> str:
+        val: Union[str, None] = self.lookup(keys, default)
+        if val is None:
+            raise KeyError
+        return val
+
+    def lookup_int(self, keys: Union[List[str], Set[str], Tuple[str, ...]], default: Union[int, None] = None) -> Union[int, None]:
         val: Union[str, None] = self.lookup(keys)
+        if default is not None and not isinstance(default, int):
+            raise TypeError
+        if val is None:
+            return default
+        return int(val)
+
+    def lookup_int_ns(self, keys: Union[List[str], Set[str], Tuple[str, ...]], default: Union[int, None] = None) -> int:
+        val: Union[int, None] = self.lookup_int(keys, default)
         if val is None:
             raise KeyError
         return val
