@@ -222,7 +222,7 @@ class ISettings(ABC):
                 return default
         return val
 
-    def lookup_ns(self, keys: Union[List[str], Set[str], Tuple[str, ...]], default: Union[int, None] = None) -> str:
+    def lookup_ns(self, keys: Union[List[str], Set[str], Tuple[str, ...]], default: Union[str, None] = None) -> str:
         val: Union[str, None] = self.lookup(keys, default)
         if val is None:
             raise KeyError

@@ -17,12 +17,12 @@ class ConversionError(ValueError):
 
 
 class HttpException(Exception):
-    _explanation: str = 'Base Http Exception'
+    _reason: str = 'Base Http Exception'
     _status_code: int = 500
 
     @property
-    def explanation(self) -> str:
-        return self._explanation
+    def reason(self) -> str:
+        return self._reason
 
     @property
     def status_code(self) -> int:
@@ -30,5 +30,5 @@ class HttpException(Exception):
 
 
 class UnauthorizedException(HttpException):
-    _explanation = 'Unauthorized'
+    _reason = 'Unauthorized'
     _status_code = 401

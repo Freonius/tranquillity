@@ -8,12 +8,20 @@ from flask import Flask
 from ._blueprints import ApiBlueprint
 from ..data.__interface import IDBObject
 from ..settings.__interface import ISettings
+from ..settings import Yaml
+
 
 class App(Flask):
     _log: Logger
 
     def __init__(self, settings: Union[ISettings, None, str] = None, register_objects: Union[List[Dict[str, Type[IDBObject]]], None] = None):
-        _name: str = ''
+        if settings is None:
+            settings = Yaml()
+        if isinstance(settings, str):
+            settings = Yaml(settings)
+        _name: str = settings.get_ns('app.name')
+        _port: int = settings.get_int_ns('app.port')
+
         super().__init__(_name,)
 
         @self.errorhandler(404)
@@ -39,7 +47,8 @@ class App(Flask):
 
     @staticmethod
     def generate_object(name: str, create_py_file: bool = False) -> Type[IDBObject]:
-        T = TypeVar('T', str, int, float, IDBObject, list, dict, datetime, date, time)
+        T = TypeVar('T', str, int, float, IDBObject,
+                    list, dict, datetime, date, time)
 
         def _getter(self: IDBObject, key: str, t: Type[T], constraints: Union[List, None] = None) -> Union[T, None]:
             if key in self._data.keys():
@@ -61,22 +70,24 @@ class App(Flask):
 
     @staticmethod
     def result(
-        result: Union[Dict[str, Any],
-        List[Dict[str, Any]], None],
-        message: Union[str, None] = None,
-        status: int = 200,
-        from_cache: bool = False) -> Tuple[Response, int]:
+            result: Union[Dict[str, Any],
+                          List[Dict[str, Any]], None],
+            message: Union[str, None] = None,
+            status: int = 200,
+            from_cache: bool = False) -> Tuple[Response, int]:
         return jsonify({
             'result': result,
             'status': status >= 200 and status < 400,
             'message': message if message is not None else 'OK',
             'cached': from_cache,
             'date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }), status
+        }), status
 
     def create_blueprint(self, name: str, url_prefix: str, obj: Union[Type[IDBObject], None] = None) -> ApiBlueprint:
-        bp: ApiBlueprint = ApiBlueprint(name, name, url_prefix=url_prefix, log=self._log)
+        bp: ApiBlueprint = ApiBlueprint(
+            name, name, url_prefix=url_prefix, log=self._log)
         bp.register(self, {})
+
         @bp.errorhandler(404)
         def is_404(e: Exception):
             return App.result(None)

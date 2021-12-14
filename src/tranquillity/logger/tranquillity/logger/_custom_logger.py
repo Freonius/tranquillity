@@ -15,7 +15,7 @@ from ..settings.__interface import ISettings
 from ..settings import Env
 from ..interfaces import ILogHandler
 from ..objects.classes import CustomLogRecord
-from ..shell._shell import Shell
+from tranquillity.shell import Shell
 
 
 # filterwarnings('ignore')
@@ -48,9 +48,9 @@ class CustomLogger(Logger):
         elif tipo is LogType.ELASTIC:
             console_logger = elastic_log_handler(
                 self.module_name, self._settings)
-        elif tipo is LogType.MONGO:
-            console_logger = mongo_log_handler(
-                self.module_name, self._settings)
+        # elif tipo is LogType.MONGO:
+        #     console_logger = mongo_log_handler(
+        #         self.module_name, self._settings)
         elif tipo is LogType.SQL:
             console_logger = sql_log_handler(self.module_name, self._settings)
         elif tipo is LogType.FILE:
@@ -78,11 +78,11 @@ class elastic_log_handler(ILogHandler):
         es.close()
 
 
-class mongo_log_handler(ILogHandler):
-    def _custom_emit(self, record: CustomLogRecord) -> None:
-        m = Mongo(self._settings)
-        m.add(record)
-        m.close()
+# class mongo_log_handler(ILogHandler):
+#     def _custom_emit(self, record: CustomLogRecord) -> None:
+#         m = Mongo(self._settings)
+#         m.add(record)
+#         m.close()
 
 
 class rabbit_log_handler(ILogHandler):
@@ -174,7 +174,7 @@ class sql_log_handler(StreamHandler):
             sql.execute(query, **log_doc)
 
 
-def logger(module_name: Union[str, None] = None, settings: Union[ISettings, None] = None) -> custom_logger:
+def logger(module_name: Union[str, None] = None, settings: Union[ISettings, None] = None) -> CustomLogger:
     if settings is None:
         settings = IniFile()
     if module_name is None:
@@ -186,18 +186,18 @@ def logger(module_name: Union[str, None] = None, settings: Union[ISettings, None
         log_path = '.'
     if not log_path.endswith(sep):
         log_path += sep
-    mylogger = custom_logger(log_path + module_name.lower().replace(
+    mylogger = CustomLogger(log_path + module_name.lower().replace(
         ' ', '_').strip() + '.log', module_name, settings=settings)
     if __debug__:
-        mylogger.add_custom_handler(LogType.STREAM_LOG, DEBUG)
+        mylogger.add_custom_handler(LogType.STREAM, DEBUG)
         mylogger.add_custom_handler(
-            LogType.FILE_LOG, DEBUG, log_path + 'debug.log')
+            LogType.FILE, DEBUG, log_path + 'debug.log')
     else:
-        mylogger.add_custom_handler(LogType.STREAM_LOG, INFO)
+        mylogger.add_custom_handler(LogType.STREAM, INFO)
         mylogger.add_custom_handler(
-            LogType.FILE_LOG, INFO, log_path + 'debug.log')
+            LogType.FILE, INFO, log_path + 'debug.log')
     mylogger.add_custom_handler(
-        LogType.FILE_LOG, WARNING, log_path + 'errors.log')
+        LogType.FILE, WARNING, log_path + 'errors.log')
     es_log: bool
     mongo_log: bool
     rabbit_log: bool
@@ -216,10 +216,10 @@ def logger(module_name: Union[str, None] = None, settings: Union[ISettings, None
     except Exception:
         rabbit_log = False
     if es_log:
-        mylogger.add_custom_handler(LogType.ELASTIC_LOG, INFO)
-    if mongo_log:
-        mylogger.add_custom_handler(LogType.MONGO_LOG, INFO)
+        mylogger.add_custom_handler(LogType.ELASTIC, INFO)
+    # if mongo_log:
+    #     mylogger.add_custom_handler(LogType.MONGO, INFO)
     if rabbit_log:
-        mylogger.add_custom_handler(LogType.RABBIT_LOG)
+        mylogger.add_custom_handler(LogType.RABBITMQ)
 
     return mylogger
