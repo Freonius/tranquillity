@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "cy:run": "./node_modules/.bin/cypress run"
+    "cy:run": "./node_modules/.bin/cypress run",
+    "pytest": "python -m pytest ./test/pytests --cov --cov-report html:pytest_coverage"
   },
   "author": "Fred Pirani",
   "license": "ISC",

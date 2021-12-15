@@ -6,3 +6,8 @@
 *build
 /data
 *.mp4
+*.coverage
+*pytest_coverage
+*.pytest_cache
+*dist
+*.whl
