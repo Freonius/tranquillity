@@ -5,7 +5,7 @@ from typing import Dict, Type, Union
 from logging import Logger
 from types import TracebackType
 from abc import ABC, abstractmethod
-from tranquillity.settings import ISettings
+from tranquillity.settings import ISettings, Yaml, KVSetting
 
 
 class IConnection(ABC):
@@ -32,10 +32,10 @@ class IConnection(ABC):
             self._settings = settings
             return
         elif isinstance(settings, dict):
-            # TODO: Convert dict from dictionary
+            self._settings = KVSetting(settings)
             return
         elif settings is None:
-            # TODO: Get data from environ
+            self._settings = Yaml()
             return
         raise TypeError(
             f'Expected ISettings, dict, or None type, got {type(settings)}')

@@ -10,4 +10,7 @@ RUN apk --update add --no-cache g++ && \
     rm -f /app/requirements.txt && \
     apk del g++
 
+ADD ./src/python/ /tq/
+ADD ./example.yml /app/settings.yml
+
 CMD [ "python" ]

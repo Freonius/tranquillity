@@ -3,6 +3,7 @@ Interface for different kind of settings.
 '''
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, List, Set, Tuple, Union
+from ast import literal_eval
 from tranquillity.exceptions import NotAllowedOperation, ConversionError
 from tranquillity.utils import flatten_dict
 
@@ -106,6 +107,15 @@ class ISettings(ABC):
         if val is None:
             raise KeyError
         return val
+
+    def get_eval(self, key: str) -> Any:
+        v: Union[str, None] = self.get(key)
+        if v is None:
+            return v
+        try:
+            return literal_eval(v)
+        except ValueError:
+            return v
 
     def set(self, key: str, val: str) -> None:
         '''

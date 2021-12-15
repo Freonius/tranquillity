@@ -18,18 +18,13 @@ class CouchDb(IConnection):
     _db: Union[Database, None] = None
 
     def connect(self) -> None:
-        _ks: Callable[[str], Set[str]] = lambda x: {
-            x,
-            f'couchdb.{x}',
-            f'conns.couchdb.{x}'
-        }
-        _host: Union[str, None] = self._settings.lookup(_ks('host'))
+        _host: Union[str, None] = self._settings.get('conn.couchdb.host')
         if _host is None:
             raise ConnectionException('host is not defined')
-        _port: int = int(str(self._settings.lookup(_ks('port'), '5984')))
+        _port: int = self._settings.get_int('conn.couchdb.port', 5984)
         _protocol: Union[str, None] = None
         try:
-            _protocol = self._settings.lookup(_ks('protocol'), 'http')
+            _protocol = self._settings.get('conn.couchdb.protocol', 'http')
         except KeyError:
             pass
         if _protocol is None:
@@ -37,8 +32,8 @@ class CouchDb(IConnection):
         _username: Union[str, None] = None
         _password: Union[str, None] = None
         try:
-            _username = self._settings.lookup(_ks('user'))
-            _password = self._settings.lookup(_ks('password'))
+            _username = self._settings.get('conn.couchdb.user')
+            _password = self._settings.get('conn.couchdb.password')
         except KeyError:
             pass
         try:
@@ -61,8 +56,7 @@ class CouchDb(IConnection):
         del _username, _password, _host, _port, _protocol
         if self._client is None:
             raise ConnectionException('Could not connect to CouchDB')
-        _db_name: Union[str, None] = self._settings.lookup(_ks('db'))
-        del _ks
+        _db_name: Union[str, None] = self._settings.get('conn.couchdb.db')
         _db: Union[Database, None] = None
         try:
             if _db_name in self._client:
@@ -95,5 +89,5 @@ class CouchDb(IConnection):
     @property
     def client(self) -> Server:
         if self._client is None:
-            raise ConnectionException
+            raise ConnectionException('No client set')
         return self._client
