@@ -23,13 +23,20 @@ conn:
 log:
   loggers:
     stream:
+      enabled: true
       level: debug
     file:
+      enabled: true
       level: debug
       file: /app/logs/{{app.name}}.log
     elasticsearch:
       level: info
-      connection: elasticsearch
+      enabled: true
+    sql:
+      type: postgres
+      enabled: true
+      db: tq
+      table: logs
     
 objects:
   president:

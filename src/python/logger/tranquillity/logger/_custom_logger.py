@@ -1,22 +1,17 @@
 from os import sep
 from sys import stdout
 from logging import DEBUG, INFO, ERROR, WARNING, LogRecord, Logger, StreamHandler, getLoggerClass, Formatter, FileHandler
-from typing import List, Union, Dict
-from datetime import datetime
-from traceback import FrameSummary, StackSummary, extract_tb
-from sqlalchemy.sql import text
-from flask import Flask
-from ..elasticsearch.conn import Elastic
-from ..mongo.conn import Mongo
-from ..enums import LogType
-from ..connections._rabbit import Rabbit
-from ..sql import client as sql_client
-from ..settings.__interface import ISettings
-from ..settings import Env
-from ..interfaces import ILogHandler
-from ..objects.classes import CustomLogRecord
+from typing import Union
+from re import compile, Pattern, Match, finditer
+from typing import Union, Callable, Set
+from pickle import dumps, loads
+from pika import BlockingConnection, ConnectionParameters, PlainCredentials
+from pika.adapters.blocking_connection import BlockingChannel
+from .__interfaces import ILogHandler
 from tranquillity.shell import Shell
-
+from tranquillity.settings import ISettings, Yaml
+from tranquillity.enums import LogType
+from .__custom_log_record import CustomLogRecordException, CustomLogRecord
 
 # filterwarnings('ignore')
 
@@ -24,43 +19,91 @@ from tranquillity.shell import Shell
 class CustomLogger(Logger):
     _settings: ISettings
 
-    def __init__(self, name_log_file: str, module_name: str, frmt: Union[str, None] = None, level: int = DEBUG, settings: Union[ISettings, None] = None):
+    def _calc_level(self, _log_name: str) -> int:
+        level: int = DEBUG
+        try:
+            match self._settings.get_ns(f'log.loggers.{_log_name}.level').upper().strip():
+                case 'DEBUG':
+                    level = DEBUG
+                case 'INFO':
+                    level = INFO
+                case 'WARNING':
+                    level = WARNING
+                case 'ERROR':
+                    level = ERROR
+        except KeyError:
+            pass
         if level is DEBUG and not __debug__:
             level = INFO
+        return level
+
+    def __init__(self, settings: Union[ISettings, None] = None):
+
+        if settings is None:
+            settings = Yaml()
+        self._settings = settings
+        level: int = self._calc_level('file')
+        _ptrn: Pattern = compile(r'\{\{\s*([a-z\.]+)\s*\}\}')
+        _m: Match
+        name_log_file: str = settings.get_ns('log.loggers.file.file')
+
+        for _m in finditer(_ptrn, name_log_file):
+            name_log_file = name_log_file.replace(
+                _m.group(0), settings.get_ns(_m.group(1)), 1)
+            del _m
+
+        del _ptrn
+
+        module_name: str = settings.get_ns('app.name')
+        frmt: Union[str, None] = None
+
+        try:
+            frmt = settings.get('log.format')
+        except Exception:
+            pass
+
         if frmt is None:
             self.frmt = '[{}@{}'.format(
                 module_name, Shell.get_docker_id()) + ':%(asctime)s:%(module)s:%(lineno)s:%(levelname)s] %(message)s'
         else:
             self.frmt = frmt
-        if settings is None:
-            settings = Env()
-        self._settings = settings
+
         self.level = level
         self.name_log_file = name_log_file
         self.module_name = module_name
         self.output = {DEBUG: '', INFO: '', ERROR: '', WARNING: ''}
         self.formatter = Formatter(self.frmt)
         super().__init__(name=name_log_file, level=level)
+        if settings.get_bool('log.loggers.file.enabled'):
+            self.add_custom_handler(LogType.FILE, self._calc_level('file'))
+        if settings.get_bool('log.loggers.stream.enabled'):
+            self.add_custom_handler(LogType.STREAM, self._calc_level('stream'))
+        if settings.get_bool('log.loggers.sql.enabled'):
+            self.add_custom_handler(LogType.SQL, self._calc_level('sql'))
+        if settings.get_bool('log.loggers.rabbitmq.enabled'):
+            self.add_custom_handler(
+                LogType.RABBITMQ, self._calc_level('rabbitmq'))
+        if settings.get_bool('log.loggers.elasticsearch.enabled'):
+            self.add_custom_handler(
+                LogType.ELASTIC, self._calc_level('elasticsearch'))
 
-    def add_custom_handler(self, tipo: LogType, level: Union[int, None] = None, override_name: Union[str, None] = None):
-        if tipo is LogType.STREAM:
+    def add_custom_handler(self, logtype: LogType, level: Union[int, None] = None, override_name: Union[str, None] = None):
+        if logtype is LogType.STREAM:
             console_logger = StreamHandler(stdout)
-        elif tipo is LogType.ELASTIC:
-            console_logger = elastic_log_handler(
-                self.module_name, self._settings)
-        # elif tipo is LogType.MONGO:
+        elif logtype is LogType.ELASTIC:
+            console_logger = ElasticLogHandler(self._settings)
+        # elif logtype is LogType.MONGO:
         #     console_logger = mongo_log_handler(
         #         self.module_name, self._settings)
-        elif tipo is LogType.SQL:
-            console_logger = sql_log_handler(self.module_name, self._settings)
-        elif tipo is LogType.FILE:
+        elif logtype is LogType.SQL:
+            console_logger = SqlLogHandler(self._settings)
+        elif logtype is LogType.FILE:
             if override_name is None:
                 console_logger = FileHandler(self.name_log_file)
             else:
                 console_logger = FileHandler(override_name)
-        elif tipo is LogType.RABBITMQ:
-            console_logger = rabbit_log_handler(
-                self.module_name, self._settings)
+        elif logtype is LogType.RABBITMQ:
+            console_logger = RabbitLogHandler(self._settings)
         else:
             return
         if level is None:
@@ -71,11 +114,14 @@ class CustomLogger(Logger):
         self.addHandler(console_logger)
 
 
-class elastic_log_handler(ILogHandler):
+class ElasticLogHandler(ILogHandler):
+    _client = ''
+
+    def __init__(self, settings: ISettings):
+        super().__init__(settings)
+
     def _custom_emit(self, record: CustomLogRecord) -> None:
-        es = Elastic(self._settings)
-        es.add(record)
-        es.close()
+        pass
 
 
 # class mongo_log_handler(ILogHandler):
@@ -85,141 +131,63 @@ class elastic_log_handler(ILogHandler):
 #         m.close()
 
 
-class rabbit_log_handler(ILogHandler):
-    def _custom_emit(self, record: CustomLogRecord) -> None:
-        r = Rabbit(record.get_table(), self._settings)
-        r.send(record)
-        r.close()
+class RabbitLogHandler(ILogHandler):
+    _queue: str
+    _client: BlockingConnection
+    _channel: BlockingChannel
 
+    def __init__(self, settings: ISettings):
+        super().__init__(settings)
+        self.initialize_client()
 
-def rabbit_log_listener(record: CustomLogRecord, r: Rabbit):
-    es_log: bool
-    mongo_log: bool
-    settings = r._settings
-    try:
-        es_log = str(settings['log.elasticsearch']
-                     ).strip().lower() in {'true', '1'}
-    except Exception:
-        es_log = False
-    try:
-        mongo_log = str(settings['log.mongo']).strip().lower() in {'true', '1'}
-    except Exception:
-        mongo_log = False
-    if mongo_log:
-        m = Mongo(settings)
-        m.add(record)
-        m.close()
-    if es_log:
-        es = Elastic(settings)
-        es.add(record)
-        es.close()
-
-
-class sql_log_handler(StreamHandler):
-    _module_name: str = ''
-    _settings: ISettings
-
-    def __init__(self, module_name: str, settings: ISettings):
-        self._module_name = module_name
-        self._settings = settings
-        super().__init__(stdout)
-
-    def emit(self, record: LogRecord):
-
-        log_doc: Dict[str, Union[None, str, int, datetime, Dict[str, Union[str, int]]]] = {
-            'time': datetime.fromtimestamp(record.created),
-            'message': record.message,
-            'filename': record.filename,
-            'line': record.lineno,
-            'level': record.levelname,
-            'module': self._module_name
+    # @staticmethod
+    def initialize_client(self) -> None:
+        _ks: Callable[[str], Set[str]] = lambda x: {
+            x,
+            f'rabbitmq.{x}',
+            f'conns.rabbitmq.{x}',
+            f'rabbit.{x}',
+            f'conn.rabbit.{x}',
         }
+        _host: Union[str, None] = self._settings.lookup(_ks('host'))
+        if _host is None:
+            raise ConnectionException('host is not defined')
+        _port: int = int(str(self._settings.lookup(_ks('port'), '5984')))
+        _protocol: Union[str, None] = None
+        try:
+            _protocol = self._settings.lookup(_ks('protocol'), 'http')
+        except KeyError:
+            pass
+        if _protocol is None:
+            _protocol = 'http'
+        _username: Union[str, None] = None
+        _password: Union[str, None] = None
+        try:
+            _username = self._settings.lookup(_ks('user'))
+            _password = self._settings.lookup(_ks('password'))
+        except KeyError:
+            pass
+        _credentials: PlainCredentials
+        if _username is None or _username.strip() == '' or _password is None or _password.strip() == '':
+            _credentials = ConnectionParameters.DEFAULT_CREDENTIALS
+        else:
+            _credentials = PlainCredentials(_username, _password)
+        self._client = BlockingConnection(ConnectionParameters(
+            host=_host, port=_port, credentials=_credentials))
+        self._queue = self._settings.lookup_ns(_ks('queue'))
+        self._channel = self._client.channel()
 
-        if record.levelname == 'ERROR':
-            if record.exc_info is None:
-                pass
-                # Is error, not exception
-            else:
-                stack_summary: StackSummary = extract_tb(record.exc_info[2])
-                frame_summaries: List[FrameSummary] = [
-                    frame_summary for frame_summary in stack_summary]
-                if len(frame_summaries) > 0:
-                    frm_sum: FrameSummary = frame_summaries[-1]
-                    log_doc['exception'] = str({
-                        'name': frm_sum.name,
-                        'filename': frm_sum.filename,
-                        'line': frm_sum.lineno,
-                        'exception': record.exc_info[1].__class__.__name__
-                    })
-        if 'exception' not in log_doc.keys():
-            log_doc['exception'] = None
-        query = text('''INSERT INTO bb_logs.logs (
-                                            log_time,
-                                            log_message,
-                                            log_filename,
-                                            log_line,
-                                            log_level,
-                                            log_module,
-                                            log_exception)
-                                        VALUES (
-                                            :time,
-                                            :message,
-                                            :filename,
-                                            :line,
-                                            :level:
-                                            :module,
-                                            :exception
-                                        );''')
-        with sql_client(self._settings) as sql:
-            sql.execute(query, **log_doc)
+    def _custom_emit(self, record: CustomLogRecord) -> None:
+        self._channel.queue_declare(queue=self._queue)
+        self._channel.basic_publish(
+            exchange='', routing_key=self._queue, body=dumps(dict(record)))
+
+    @staticmethod
+    def rabbit_log_listener():
+        pass
 
 
-def logger(module_name: Union[str, None] = None, settings: Union[ISettings, None] = None) -> CustomLogger:
-    if settings is None:
-        settings = IniFile()
-    if module_name is None:
-        module_name = str(settings['log.module'])
-    log_path: str = settings['log.path']
-    if log_path is None:
-        log_path = ''
-    if log_path.strip() == '':
-        log_path = '.'
-    if not log_path.endswith(sep):
-        log_path += sep
-    mylogger = CustomLogger(log_path + module_name.lower().replace(
-        ' ', '_').strip() + '.log', module_name, settings=settings)
-    if __debug__:
-        mylogger.add_custom_handler(LogType.STREAM, DEBUG)
-        mylogger.add_custom_handler(
-            LogType.FILE, DEBUG, log_path + 'debug.log')
-    else:
-        mylogger.add_custom_handler(LogType.STREAM, INFO)
-        mylogger.add_custom_handler(
-            LogType.FILE, INFO, log_path + 'debug.log')
-    mylogger.add_custom_handler(
-        LogType.FILE, WARNING, log_path + 'errors.log')
-    es_log: bool
-    mongo_log: bool
-    rabbit_log: bool
-    try:
-        es_log = str(settings['log.elasticsearch']
-                     ).strip().lower() in {'true', '1'}
-    except Exception:
-        es_log = False
-    try:
-        mongo_log = str(settings['log.mongo']).strip().lower() in {'true', '1'}
-    except Exception:
-        mongo_log = False
-    try:
-        rabbit_log = str(settings['log.rabbit']
-                         ).strip().lower() in {'true', '1'}
-    except Exception:
-        rabbit_log = False
-    if es_log:
-        mylogger.add_custom_handler(LogType.ELASTIC, INFO)
-    # if mongo_log:
-    #     mylogger.add_custom_handler(LogType.MONGO, INFO)
-    if rabbit_log:
-        mylogger.add_custom_handler(LogType.RABBITMQ)
+class SqlLogHandler(ILogHandler):
 
-    return mylogger
+    def _custom_emit(self, record: CustomLogRecord) -> None:
+        pass

@@ -3,8 +3,8 @@ Interface for different kind of settings.
 '''
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, List, Set, Tuple, Union
-from ..exceptions import NotAllowedOperation, ConversionError
-from ..conversions._dict import flatten_dict
+from tranquillity.exceptions import NotAllowedOperation, ConversionError
+from tranquillity.utils import flatten_dict
 
 
 class ISettings(ABC):

@@ -3,9 +3,9 @@ from typing import AnyStr, Union, Any, Callable, Set
 from pickle import dumps, loads
 from pika import BlockingConnection, ConnectionParameters, PlainCredentials
 from pika.adapters.blocking_connection import BlockingChannel
-from ..settings import ISettings, Env
+from tranquillity.settings import ISettings
+from tranquillity.exceptions import ConnectionException
 from .__interface import IConnection
-from ..exceptions import ConnectionException
 
 
 class Rabbit(IConnection):

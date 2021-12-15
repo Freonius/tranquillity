@@ -8,7 +8,10 @@ from .__interface import ISettings
 
 
 class Yaml(ISettings):
-    def __init__(self, yaml_file: Union[str, None] = None) -> None:
+    def __init__(self, yaml_file: Union[str, None] = None,
+                 defaults: Union[Dict[str, Any], None] = None,
+                 raise_on_missing: bool = True,
+                 read_only: bool = False) -> None:
         super().__init__()
         if yaml_file is None:
             cwd: str = environ['WORKING_DIR'] if 'WORKING_DIR' in environ.keys(
@@ -36,7 +39,9 @@ class Yaml(ISettings):
         _d: Dict[str, Any] = {}
         with open(yaml_file) as fh:
             _d = load(fh.read(), SafeLoader)
-        self._config(_d, raise_on_missing=True)
+        self._config(_d, defaults=defaults,
+                     raise_on_missing=raise_on_missing,
+                     read_only=read_only)
 
     def _update(self, key: str, val: str) -> None:
         pass  # TODO: Update
