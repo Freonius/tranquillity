@@ -5,7 +5,7 @@ from typing import Callable, Set, Union
 from couchdb import Server, Session, ServerError, Unauthorized, ResourceNotFound
 from couchdb.client import Database
 from .__interface import IConnection
-from ..exceptions import ConnectionException
+from tranquillity.exceptions import ConnectionException
 
 
 class CouchDb(IConnection):

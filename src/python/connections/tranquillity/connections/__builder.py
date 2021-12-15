@@ -4,7 +4,7 @@ from logging import Logger
 from typing import Dict, Union, Type, TypeVar
 from .__interface import IConnection
 from ._rabbit import Rabbit
-from ..settings import KVSetting
+from tranquillity.settings import KVSetting
 
 T = TypeVar('T', bound=IConnection)
 
@@ -18,7 +18,7 @@ class ConnectionBuilder(object):
     _db: Union[str, None]
     _settings: KVSetting = KVSetting()
     _log: Union[Logger, None] = None
-    
+
     def __init__(self, prefix: str, log: Union[Logger, None]) -> None:
         super().__init__()
 
@@ -38,8 +38,7 @@ class ConnectionBuilder(object):
         }
 
         raise NotImplementedError
-    
+
     def build(self, t: Type[T]) -> T:
         self.prepare(t)
         return t(self._settings, self._log)
-    

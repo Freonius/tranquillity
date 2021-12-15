@@ -5,7 +5,7 @@ from typing import Dict, Type, Union
 from logging import Logger
 from types import TracebackType
 from abc import ABC, abstractmethod
-from ..settings.__interface import ISettings
+from tranquillity.settings import ISettings
 
 
 class IConnection(ABC):

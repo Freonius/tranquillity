@@ -37,6 +37,7 @@ log:
       enabled: true
       db: tq
       table: logs
+      schema: tranquillity
     
 objects:
   president:

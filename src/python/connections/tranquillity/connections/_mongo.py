@@ -7,7 +7,7 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from pymongo.database import Database
 from .__interface import IConnection
-from ..exceptions import ConnectionException
+from tranquillity.exceptions import ConnectionException
 
 
 class Mongo(IConnection):

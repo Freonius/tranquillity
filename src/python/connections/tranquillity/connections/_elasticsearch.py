@@ -4,7 +4,7 @@ Module for Elasticsearch operations
 from typing import Callable, Set, Union
 from elasticsearch.client import Elasticsearch as ES
 from .__interface import IConnection
-from ..exceptions import ConnectionException
+from tranquillity.exceptions import ConnectionException
 
 
 class Elasticsearch(IConnection):
