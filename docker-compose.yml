@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:6.2-alpine
+    pull_policy: missing
+  elasticsearch:
+    image: elasticsearch:7.13.2
+    pull_policy: missing
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+  rabbitmq:
+    image: rabbitmq:3.8-alpine
+    pull_policy: missing
+  mongo:
+    image: mongo:5.0
+    restart: always
+    pull_policy: missing
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=user
+      - MONGO_INITDB_ROOT_PASSWORD=example
+    volumes:
+      - ./data/mongo:/data/db
+  nginx:
+    image: nginx:1.21-alpine
+    pull_policy: missing
+  tranquillity:
+    image: tranquillity:v0.1.0
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        TQ_VERSION: v0.1.0

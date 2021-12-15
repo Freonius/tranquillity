@@ -19,6 +19,21 @@ conn:
     user: user
     password: password
     protocol: http
+  rabbitmq:
+    host: rabbit
+    port: 1234
+    queue: tq-queue
+    protocol: http
+    user: user
+    password: password
+  couchdb:
+    host: couch
+    port: 1234
+    user: user
+    password: password
+    protocol: http
+    db: tq
+    
 
 log:
   loggers:
@@ -31,10 +46,10 @@ log:
       file: /app/logs/{{app.name}}.log
     elasticsearch:
       level: info
-      enabled: true
+      enabled: false
     sql:
       type: postgres
-      enabled: true
+      enabled: false
       db: tq
       table: logs
       schema: tranquillity

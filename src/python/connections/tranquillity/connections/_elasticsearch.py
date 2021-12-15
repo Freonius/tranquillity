@@ -1,7 +1,7 @@
 '''
 Module for Elasticsearch operations
 '''
-from typing import Callable, Set, Union
+from typing import Union
 from elasticsearch.client import Elasticsearch as ES
 from .__interface import IConnection
 from tranquillity.exceptions import ConnectionException
@@ -14,18 +14,14 @@ class Elasticsearch(IConnection):
     _client: Union[ES, None] = None
 
     def connect(self) -> None:
-        _ks: Callable[[str], Set[str]] = lambda x: {
-            x,
-            f'elasticsearch.{x}',
-            f'conns.elasticsearch.{x}'
-        }
-        _host: Union[str, None] = self._settings.lookup(_ks('host'))
+        _host: Union[str, None] = self._settings.get('conn.elasticsearch.host')
         if _host is None:
             raise ConnectionException('host is not defined')
-        _port: int = int(str(self._settings.lookup(_ks('port'), '9200')))
+        _port: int = self._settings.get_int('conn.elasticsearch.port', 9200)
         _protocol: Union[str, None] = None
         try:
-            _protocol = self._settings.lookup(_ks('protocol'), 'http')
+            _protocol = self._settings.get(
+                'conn.elasticsearch.protocol', 'http')
         except KeyError:
             pass
         if _protocol is None:
@@ -33,8 +29,8 @@ class Elasticsearch(IConnection):
         _username: Union[str, None] = None
         _password: Union[str, None] = None
         try:
-            _username = self._settings.lookup(_ks('user'))
-            _password = self._settings.lookup(_ks('password'))
+            _username = self._settings.get('conn.elasticsearch.user')
+            _password = self._settings.get('conn.elasticsearch.password')
         except KeyError:
             pass
         _url: str = f'{_protocol}://'
@@ -43,7 +39,6 @@ class Elasticsearch(IConnection):
             _url += f'{_username}:{_password}@'
         del _username, _password
         _url += f'{_host}:{_port}'
-        del _ks
         _client: ES = ES(_url)
         self._client = _client
 
@@ -57,3 +52,9 @@ class Elasticsearch(IConnection):
             return
         self._client.close()
         self._client = None
+
+    @property
+    def client(self) -> ES:
+        if self._client is None:
+            raise ConnectionException('Client is None')
+        return self._client

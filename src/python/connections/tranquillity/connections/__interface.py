@@ -1,7 +1,7 @@
 '''
 Module for the connection interface.
 '''
-from typing import Dict, Type, Union
+from typing import Any, Dict, Type, Union
 from logging import Logger
 from types import TracebackType
 from abc import ABC, abstractmethod
@@ -107,5 +107,9 @@ class IConnection(ABC):
         '''
         Check whether it is connected to the database.
         '''
+
+    @property
+    def client(self) -> Any:
+        return None
 
     # TODO: Add execute_statement method.
