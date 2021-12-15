@@ -1,5 +1,5 @@
 from .__interface import IConnection
 
 
-class Redis(IConnection):
+class SqlServer(IConnection):
     pass

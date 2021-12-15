@@ -1,5 +1,5 @@
 from .__interface import IConnection
 
 
-class Redis(IConnection):
+class Db2(IConnection):
     pass
