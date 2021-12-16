@@ -1,11 +1,7 @@
-# from ._shell import Shell, ShellReturn
-
-
 from sys import path
 from os.path import realpath, dirname, sep
 path.append(realpath(dirname(__file__) +
             f'{sep}..'))
-# Keep here
 
 
 def test_shell():
@@ -21,4 +17,5 @@ def test_shell():
 
 def test_hostname():
     from ..tranquillity.shell import Shell
-    assert Shell().get_docker_id() == '127.0.0.1'
+    from re import match
+    assert match(r'^\d+\.\d+\.\d+\.\d+$', Shell().get_docker_id()) is not None
