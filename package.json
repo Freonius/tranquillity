@@ -5,15 +5,20 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "cy:run": "./node_modules/.bin/cypress run",
+    "cy:run": "cross-var ./node_modules/.bin/cypress run",
     "pytest:win": ".\\scripts\\bat\\run_pytests.bat",
-    "pytest:sh": "sh ./scripts/sh/run_pytests.sh"
+    "pytest:sh": "sh ./scripts/sh/run_pytests.sh",
+    "py:install:win": ".\\scripts\\bat\\install_python_modules.bat",
+    "py:install:sh": "sh ./scripts/sh/install_python_modules.sh",
+    "py:install_req:win": ".\\scripts\\bat\\install_python_requirements.bat",
+    "py:install_req:sh": "sh ./scripts/sh/install_python_requirements.sh"
   },
   "author": "Fred Pirani",
   "license": "ISC",
   "devDependencies": {
     "@babel/core": "^7.15.8",
     "@babel/preset-env": "^7.15.8",
+    "@cypress/code-coverage": "^3.9.12",
     "babel-loader": "^8.2.3",
     "babel-preset-env": "^1.7.0",
     "cross-var": "^1.1.0",

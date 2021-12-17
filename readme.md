@@ -1,5 +1,3 @@
-```mermaid
-flowchart TD
-    id1[Create schema by overwriting class methods] --> id2[Check connections]
-    id2 --> id3[Start service]
-```
+# Tranquillity
+
+[![codecov](https://codecov.io/gh/Freonius/tranquillity/branch/dev/graph/badge.svg?token=F6HK01BK76)](https://codecov.io/gh/Freonius/tranquillity)
