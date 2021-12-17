@@ -11,3 +11,5 @@
 *.pytest_cache
 *dist
 *.whl
+*coverage.xml
+/coverage

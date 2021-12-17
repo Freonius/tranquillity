@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "cy:run": "./node_modules/.bin/cypress run",
-    "pytest": "python -m pytest ./test/pytests --cov --cov-report html:pytest_coverage"
+    "pytest:win": ".\\scripts\\bat\\run_pytests.bat",
+    "pytest:sh": "sh ./scripts/sh/run_pytests.sh"
   },
   "author": "Fred Pirani",
   "license": "ISC",

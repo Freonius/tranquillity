@@ -11,6 +11,7 @@ from .__interfaces import ILogHandler
 from tranquillity.shell import Shell
 from tranquillity.settings import ISettings, Yaml
 from tranquillity.enums import LogType
+from tranquillity.exceptions import ConnectionException
 from .__custom_log_record import CustomLogRecordException, CustomLogRecord
 
 # filterwarnings('ignore')
@@ -74,18 +75,34 @@ class CustomLogger(Logger):
         self.output = {DEBUG: '', INFO: '', ERROR: '', WARNING: ''}
         self.formatter = Formatter(self.frmt)
         super().__init__(name=name_log_file, level=level)
-        if settings.get_bool('log.loggers.file.enabled'):
-            self.add_custom_handler(LogType.FILE, self._calc_level('file'))
-        if settings.get_bool('log.loggers.stream.enabled'):
-            self.add_custom_handler(LogType.STREAM, self._calc_level('stream'))
-        if settings.get_bool('log.loggers.sql.enabled'):
-            self.add_custom_handler(LogType.SQL, self._calc_level('sql'))
-        if settings.get_bool('log.loggers.rabbitmq.enabled'):
-            self.add_custom_handler(
-                LogType.RABBITMQ, self._calc_level('rabbitmq'))
-        if settings.get_bool('log.loggers.elasticsearch.enabled'):
-            self.add_custom_handler(
-                LogType.ELASTIC, self._calc_level('elasticsearch'))
+        try:
+            if settings.get_bool('log.loggers.file.enabled'):
+                self.add_custom_handler(LogType.FILE, self._calc_level('file'))
+        except KeyError:
+            pass
+        try:
+            if settings.get_bool('log.loggers.stream.enabled'):
+                self.add_custom_handler(
+                    LogType.STREAM, self._calc_level('stream'))
+        except KeyError:
+            pass
+        try:
+            if settings.get_bool('log.loggers.sql.enabled'):
+                self.add_custom_handler(LogType.SQL, self._calc_level('sql'))
+        except KeyError:
+            pass
+        try:
+            if settings.get_bool('log.loggers.rabbitmq.enabled'):
+                self.add_custom_handler(
+                    LogType.RABBITMQ, self._calc_level('rabbitmq'))
+        except KeyError:
+            pass
+        try:
+            if settings.get_bool('log.loggers.elasticsearch.enabled'):
+                self.add_custom_handler(
+                    LogType.ELASTIC, self._calc_level('elasticsearch'))
+        except KeyError:
+            pass
 
     def add_custom_handler(self, logtype: LogType, level: Union[int, None] = None, override_name: Union[str, None] = None):
         if logtype is LogType.STREAM:

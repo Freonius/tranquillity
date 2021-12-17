@@ -7,6 +7,8 @@ class KVSetting(ISettings):
         super().__init__()
         if data is None:
             data = {}
+        if not isinstance(data, dict):
+            raise TypeError
         self._config(data)
 
     def _update(self, key: str, val: str) -> None:

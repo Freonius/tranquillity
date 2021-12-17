@@ -11,7 +11,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: "3.10"
-      - name: Install dependencies
-        run: cd ./src/python/shell && python -m pip install -r ./requirements.txt && python -m pip install -r ./requirements-dev.txt
-      - name: Run tests
-        run: cd ./src/python/shell && sh ./pytest-tq.sh
+      - name: Run all tests
+        run: sh ./scripts/sh/run_pytests.sh
+      - uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/shell.xml
+      

@@ -1,2 +1,2 @@
 @ECHO OFF
-python -m pip install --compile .
+python -m pip install --compile %~dp0.

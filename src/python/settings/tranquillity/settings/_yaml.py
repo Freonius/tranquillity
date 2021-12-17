@@ -19,7 +19,7 @@ class Yaml(ISettings):
             yaml_list: List[str] = list(filter(lambda x: ('.'.join(basename(x).split('.')[
                                         :-1]).lower().strip() not in {'docker-compose', 'pubspec'}),  glob(cwd + sep + '*.y*ml')))
             if len(yaml_list) == 0:
-                raise Exception
+                raise Exception('No yaml file provided or found')
             if len(yaml_list) == 1:
                 yaml_file = yaml_list[0]
             else:
@@ -32,13 +32,16 @@ class Yaml(ISettings):
                     yaml_file = list(filter(lambda x: ('.'.join(basename(x).split('.')[
                         :-1]).lower().strip() in {'settings'}), yaml_list))[0]
                 else:
-                    raise Exception
+                    raise Exception('I found more than one yaml file')
+                del yaml_list_check
+            del yaml_list
         yaml_file = abspath(yaml_file)
         if not exists(yaml_file) or not isfile(yaml_file):
-            raise Exception
+            raise Exception(f'The file {yaml_file} does not exist')
         _d: Dict[str, Any] = {}
         with open(yaml_file) as fh:
             _d = load(fh.read(), SafeLoader)
+        del yaml_file
         self._config(_d, defaults=defaults,
                      raise_on_missing=raise_on_missing,
                      read_only=read_only)
