@@ -25,6 +25,7 @@ jobs:
       - name: Build
         run: sh ./scripts/sh/build_wheels.sh
       - name: Publish package to PyPI
+        if: github.ref == 'refs/heads/master'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
