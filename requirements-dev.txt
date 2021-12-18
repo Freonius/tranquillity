@@ -1,4 +1,4 @@
-pylint~=2.12.6
+pylint~=2.12.2
 pycodestyle~=2.7.0
 autopep8~=1.5.7
 pytest~=6.2.5
