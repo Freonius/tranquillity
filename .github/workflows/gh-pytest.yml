@@ -22,6 +22,8 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/shell.xml
+      - name: Build
+        run: sh ./scripts/sh/build_wheels.sh
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

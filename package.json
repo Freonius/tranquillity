@@ -10,6 +10,8 @@
     "pytest:sh": "sh ./scripts/sh/run_pytests.sh",
     "py:install:win": ".\\scripts\\bat\\install_python_modules.bat",
     "py:install:sh": "sh ./scripts/sh/install_python_modules.sh",
+    "py:build:win": ".\\scripts\\bat\\build_wheels.bat",
+    "py:build:sh": "sh ./scripts/sh/build_wheels.sh",
     "py:install_req:win": ".\\scripts\\bat\\install_python_requirements.bat",
     "py:install_req:sh": "sh ./scripts/sh/install_python_requirements.sh"
   },
