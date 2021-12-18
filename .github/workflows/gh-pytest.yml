@@ -27,5 +27,5 @@ jobs:
         with:
           user: Freonius
           password: ${{ secrets.PYPI_TOKEN }}
-          packages_dir: ./src/python/shell/
+          packages_dir: ./src/python/shell/dist/
       
