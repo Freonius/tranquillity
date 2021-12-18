@@ -1,4 +1,4 @@
-name: Run pytest
+name: Python
 on: [push]
 jobs:
   Run-Tests:
@@ -11,24 +11,22 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: "3.10"
-      - name: Install requirements
-        run: sh ./scripts/sh/install_python_requirements.sh
-      - name: Install modules
-        run: sh ./scripts/sh/install_python_modules.sh
+      - name: Run linter
+        run: bash ./setup.sh py -l -m shell
       - name: Run all tests
-        run: sh ./scripts/sh/run_pytests.sh
+        run: bash ./setup.sh py -t -m shell
       - name: Upload coverage
         uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/shell.xml
       - name: Build
-        run: sh ./scripts/sh/build_wheels.sh
+        run: bash ./setup.sh py -b -m shell
       - name: Publish package to PyPI
         if: github.ref == 'refs/heads/master'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
-          packages_dir: ./src/python/shell/dist/
+          packages_dir: ./src/python/dist/
       

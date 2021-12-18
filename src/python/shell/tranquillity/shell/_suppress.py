@@ -2,10 +2,10 @@ from os import open as os_open, close as os_close, dup, dup2, devnull, O_RDWR
 from typing import List, Tuple
 
 
-class SuppressOutput(object):
+class SuppressOutput:
     null_fds: List[int]
     save_fds: Tuple[int, int]
-    
+
     def __init__(self):
         # Open a pair of null files
         self.null_fds = [os_open(devnull, O_RDWR) for x in range(2)]

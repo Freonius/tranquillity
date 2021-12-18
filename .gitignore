@@ -13,3 +13,5 @@
 *.whl
 *coverage.xml
 /coverage
+/logs
+/lint
