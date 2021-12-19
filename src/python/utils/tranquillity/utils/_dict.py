@@ -1,12 +1,16 @@
 from typing import Any, Callable, Dict, Union
 
 
-def flatten_dict(data: Dict[str, Any], key_prefix: Union[str, None] = None, key_map: Union[Callable[[str], str], None] = str.lower) -> Dict[str, str]:
+def flatten_dict(
+        data: Dict[str, Any],
+        key_prefix: Union[str, None] = None,
+        key_map: Union[Callable[[str], str], None] = str.lower) -> Dict[str, str]:
+    # pylint: disable=too-many-branches
     if not isinstance(data, dict):
-        if __debug__:
-            raise TypeError(f'data must be fo type dict, got {type(data)}')
-        else:
-            raise TypeError('data must be fo type dict')
+        if __debug__:   # pragma: no cover
+            raise TypeError(
+                f'data must be fo type dict, got {type(data)}')  # pragma: no cover
+        raise TypeError('data must be fo type dict')
     if len(data.keys()) == 0:
         return {}
     if key_prefix is not None and not isinstance(key_prefix, str):
@@ -28,7 +32,7 @@ def flatten_dict(data: Dict[str, Any], key_prefix: Union[str, None] = None, key_
             if key_prefix is not None:
                 sub_prefix = key_prefix + '.'
             sub_prefix += key
-            sub: Dict[str, str] = flatten_dict(data[key], sub_prefix)
+            sub: Dict[str, str] = flatten_dict(data[key], sub_prefix, key_map)
             del sub_prefix
             if len(sub.keys()) == 0:
                 continue
@@ -46,5 +50,5 @@ def flatten_dict(data: Dict[str, Any], key_prefix: Union[str, None] = None, key_
     del key
     if key_map is not None:
         return {key_map(out_key): out_val for out_key, out_val in out.items()}
-    else:
-        return out
+    return out
+    # pylint: enable=too-many-branches

@@ -133,7 +133,7 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
                 log "ERROR :: Could not install requirements for folder ${fld}"
                 exit 1
             fi
-            ${PYTHON_CMD} -m pytest ${FULL_PY_FOLDER}/test --cov=${FULL_PY_FOLDER}/tranquillity/${fld}/ --cov-report=xml:${SCRIPTPATH}/coverage/${fld}.xml --cov-report=html:${SCRIPTPATH}/coverage/${fld}
+            ${PYTHON_CMD} -m pytest ${FULL_PY_FOLDER}/test --cov=${FULL_PY_FOLDER}/tranquillity/${fld}/ --cov-report=xml:./coverage/${fld}.xml --cov-report=html:./coverage/${fld}
             if [[ $? -ne 0 ]]; then
                 log "ERROR :: tests failed for folder ${fld}"
                 exit 1

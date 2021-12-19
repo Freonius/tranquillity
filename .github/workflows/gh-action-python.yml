@@ -12,14 +12,14 @@ jobs:
         with:
           python-version: "3.10"
       - name: Run linter
-        run: bash ./setup.sh py -l -m shell
+        run: bash ./setup.sh py -l -m shell utils
       - name: Run all tests
-        run: bash ./setup.sh py -t -m shell
+        run: bash ./setup.sh py -t -m shell utils
       - name: Upload coverage
         uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/shell.xml
+          files: ./coverage/shell.xml,./coverage/utils.xml
       - name: Build
         run: bash ./setup.sh py -b -m shell
       - name: Publish package to PyPI

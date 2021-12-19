@@ -31,8 +31,8 @@ class Shell:
             _stdout: str = ''
             try:
                 _stdout = _stdout_b.decode('utf-8').strip()
-            except AttributeError:
-                pass
+            except AttributeError:  # pragma: no cover
+                pass                # pragma: no cover
             del _stdout_b
             _stderr: str = ''
             try:
@@ -52,7 +52,7 @@ class Shell:
                 container_id: str = _proc.communicate()[
                     0].decode('utf-8').strip()[:12]
                 unhexlify(container_id)
-                return container_id
+                return container_id  # pragma: no cover
         # pylint: disable=broad-except
         except Exception:
             return host_ip
