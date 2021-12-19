@@ -1,1 +1,17 @@
 /.vscode
+/node_modules
+/.mypy_cache
+*.egg-info
+*__pycache__
+*build
+/data
+*.mp4
+*.coverage
+*pytest_coverage
+*.pytest_cache
+*dist
+*.whl
+*coverage.xml
+/coverage
+/logs
+/lint

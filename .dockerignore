@@ -1,0 +1,11 @@
+/.git
+/data
+/readme.md
+/.vscode
+/.github
+/.mypy_cache
+/build
+/data
+/node_modules
+/.gitignore
+*.mp4

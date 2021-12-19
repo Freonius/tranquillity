@@ -1,0 +1,32 @@
+name: Python
+on: [push]
+jobs:
+  Run-Tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+      - name: Run linter
+        run: bash ./setup.sh py -l -m shell utils
+      - name: Run all tests
+        run: bash ./setup.sh py -t -m shell utils
+      - name: Upload coverage
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/shell.xml,./coverage/utils.xml
+      - name: Build
+        run: bash ./setup.sh py -b -m shell
+      # - name: Publish package to PyPI
+      #   if: github.ref == 'refs/heads/master'
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #     user: __token__
+      #     password: ${{ secrets.PYPI_TOKEN }}
+      #     packages_dir: ./src/python/dist/
+      

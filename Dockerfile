@@ -1,4 +1,4 @@
-FROM python:3.9-alpine
+FROM python:3.10-alpine
 
 WORKDIR /app/
 
@@ -9,5 +9,8 @@ RUN apk --update add --no-cache g++ && \
     pip install --no-cache-dir -r /app/requirements.txt && \
     rm -f /app/requirements.txt && \
     apk del g++
+
+ADD ./src/python/ /tq/
+ADD ./example.yml /app/settings.yml
 
 CMD [ "python" ]
