@@ -1,3 +1,4 @@
+# pylint: disable=duplicate-code
 from configparser import ConfigParser
 from posixpath import abspath, isfile, exists
 from typing import Any, Dict

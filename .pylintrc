@@ -2,4 +2,6 @@
 disable=missing-function-docstring,
         missing-module-docstring,
         missing-class-docstring,
-        consider-iterating-dictionary
+        consider-iterating-dictionary,
+        fixme,
+        duplicate-code

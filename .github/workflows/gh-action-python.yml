@@ -22,11 +22,11 @@ jobs:
           files: ./coverage/shell.xml,./coverage/utils.xml
       - name: Build
         run: bash ./setup.sh py -b -m shell
-      - name: Publish package to PyPI
-        if: github.ref == 'refs/heads/master'
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_TOKEN }}
-          packages_dir: ./src/python/dist/
+      # - name: Publish package to PyPI
+      #   if: github.ref == 'refs/heads/master'
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #     user: __token__
+      #     password: ${{ secrets.PYPI_TOKEN }}
+      #     packages_dir: ./src/python/dist/
       
