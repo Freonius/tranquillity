@@ -8,6 +8,8 @@ about connections, logging, requests, or endpoints.
 
 It is a work in progress, so, if you use it, keep that in mind. (As soon as I am done working on it, I'll remove this line)
 
+**Seriously**, don't use it now, it doesn't even work (except for a couple of modules).
+
 If you want to help me out, or make any changes, write me at freonius@gmail.com.
 
 I think it's nice, but I am biased, but if nobody else uses it, I will.

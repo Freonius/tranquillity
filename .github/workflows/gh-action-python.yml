@@ -19,7 +19,7 @@ jobs:
         uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/shell.xml,./coverage/utils.xml
+          files: ./coverage/shell.xml,./coverage/utils.xml,./coverage/exceptions.xml
       - name: Build
         run: bash ./setup.sh py -b -m shell
       # - name: Publish package to PyPI
