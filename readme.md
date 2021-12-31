@@ -2,6 +2,8 @@
 
 ![Workflow](https://github.com/Freonius/tranquillity/actions/workflows/gh-action-python.yml/badge.svg)
 [![codecov](https://codecov.io/gh/Freonius/tranquillity/branch/master/graph/badge.svg?token=F6HK01BK76)](https://codecov.io/gh/Freonius/tranquillity)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Freonius/tranquillity.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Freonius/tranquillity/context:python)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/Freonius/tranquillity.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Freonius/tranquillity/alerts/)
 ![Lines of code](https://tokei.rs/b1/github/Freonius/tranquillity)
 
 Tranquillity is a set of utilities that I got tired of copying and pasting everywhere,
