@@ -1,7 +1,7 @@
 '''
 Module for CouchDb operations
 '''
-from typing import Callable, Set, Union
+from typing import Union
 from couchdb import Server, Session, ServerError, Unauthorized, ResourceNotFound
 from couchdb.client import Database
 from .__interface import IConnection

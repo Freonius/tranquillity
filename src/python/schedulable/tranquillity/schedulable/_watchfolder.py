@@ -41,15 +41,18 @@ class WatchFolder:
         else:
             self._filter = filter
 
-    def _run(self):
+    def _run(self) -> None:
         event_handler = Handler(self._action['action'], self._filter)
         self._observer.schedule(event_handler, self._fld, recursive=True)
         self._observer.start()
         try:
             while True:
                 sleep(self._sleep)
-        except:
+                if not self._observer.is_alive:
+                    break
+        except Exception:
             self._observer.stop()
+            raise
         self._observer.join()
 
     def run(self):

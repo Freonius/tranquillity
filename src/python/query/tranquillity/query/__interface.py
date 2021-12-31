@@ -1,16 +1,12 @@
 # pylint: disable=invalid-name,missing-function-docstring,missing-class-docstring,missing-module-docstring,suppressed-message,locally-disabled
 
-from abc import ABC, abstractmethod
-from re import compile, Pattern
+from abc import ABC
+from re import Pattern
 from bson import ObjectId
 from datetime import date, datetime, time
-from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar, Union, overload, Type, Iterable
+from typing import Any, Dict, Generic, List, Tuple, TypeVar, Union, Type, Iterable
 from enum import Enum, auto
-from multidispatch import multifunction
 from dataclasses import dataclass
-from ..data.__interface import IDBObject
-from ..data._types import DataType
-from ..data._dataclasses import DataField, DataTable
 
 # Enums
 
@@ -49,12 +45,12 @@ class QueryAction(Enum):
     Delete = auto()
 
 
-T = TypeVar('T', bound=IDBObject)
+T = TypeVar('T', bound=Any)
 
 
 @dataclass
 class QueryCondition:
-    data_type: DataType
+    data_type: str
     data_value: Union[
         int,
         str,
@@ -126,8 +122,6 @@ class QueryWhere:
 class IQuery(ABC, Generic[T]):
     _action: QueryAction
     _t: Type[T]
-    _fields: Iterable[DataField]
-    _table: DataTable
     _where: List[QueryCondition]
 
     def Where(self, where: QueryCondition) -> 'IQuery[T]':
