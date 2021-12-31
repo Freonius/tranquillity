@@ -1,6 +1,8 @@
 # Tranquillity
 
+![Workflow](https://github.com/Freonius/tranquillity/actions/workflows/gh-action-python.yml/badge.svg)
 [![codecov](https://codecov.io/gh/Freonius/tranquillity/branch/master/graph/badge.svg?token=F6HK01BK76)](https://codecov.io/gh/Freonius/tranquillity)
+![Lines of code](https://tokei.rs/b1/github/Freonius/tranquillity)
 
 Tranquillity is a set of utilities that I got tired of copying and pasting everywhere,
 and that helps me doing the things that need to be done, without worrying too much
