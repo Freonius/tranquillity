@@ -27,13 +27,13 @@ class Rabbit(IConnection):
         if _host is None:
             raise ConnectionException('host is not defined')
         _port: int = int(str(self._settings.lookup(_ks('port'), '5984')))
-        _protocol: Union[str, None] = None
-        try:
-            _protocol = self._settings.lookup(_ks('protocol'), 'http')
-        except KeyError:
-            pass
-        if _protocol is None:
-            _protocol = 'http'
+        # _protocol: Union[str, None] = None
+        # try:
+        #     _protocol = self._settings.lookup(_ks('protocol'), 'http')
+        # except KeyError:
+        #     pass
+        # if _protocol is None:
+        #     _protocol = 'http'
         _username: Union[str, None] = None
         _password: Union[str, None] = None
         try:
@@ -87,4 +87,4 @@ class Rabbit(IConnection):
         self._client.close()
 
     def _is_connected(self) -> bool:
-        return self._client.is_open
+        return bool(self._client.is_open)

@@ -1,7 +1,7 @@
 name: Python
 on: [push]
 jobs:
-  Run-Tests:
+  Python:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -12,14 +12,14 @@ jobs:
         with:
           python-version: "3.10"
       - name: Run linter
-        run: bash ./setup.sh py -l -m shell utils
+        run: bash ./setup.sh py -l -m shell utils exceptions
       - name: Run all tests
-        run: bash ./setup.sh py -t -m shell utils
+        run: bash ./setup.sh py -t -m shell utils exceptions
       - name: Upload coverage
         uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/shell.xml,./coverage/utils.xml
+          files: ./coverage/shell.xml,./coverage/utils.xml,./coverage/exceptions.xml
       - name: Build
         run: bash ./setup.sh py -b -m shell
       # - name: Publish package to PyPI
