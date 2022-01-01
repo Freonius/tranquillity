@@ -5,6 +5,7 @@
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Freonius/tranquillity.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Freonius/tranquillity/context:python)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/Freonius/tranquillity.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Freonius/tranquillity/alerts/)
 ![Lines of code](https://tokei.rs/b1/github/Freonius/tranquillity)
+![License](https://img.shields.io/github/license/Freonius/tranquillity)
 
 Tranquillity is a set of utilities that I got tired of copying and pasting everywhere,
 and that helps me doing the things that need to be done, without worrying too much
