@@ -12,9 +12,13 @@ jobs:
         with:
           python-version: "3.10"
       - name: Run linter
-        run: bash ./setup.sh py -l -m shell utils exceptions settings
+        run: bash ./setup.sh py -l -m shell utils exceptions
       - name: Run all tests
-        run: bash ./setup.sh py -t -m shell utils exceptions settings
+        run: bash ./setup.sh py -t -m -i shell utils exceptions
+      - name: Run linter
+        run: bash ./setup.sh py -l -m settings
+      - name: Run all tests
+        run: bash ./setup.sh py -t -m -i settings 
       - name: Upload coverage
         uses: codecov/codecov-action@v2
         with:
