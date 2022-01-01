@@ -1,11 +1,8 @@
-from typing import Any, Dict, Iterable, List, Tuple, Union
-from datetime import datetime
-from abc import ABC, abstractmethod
+from typing import Any, Dict, Iterable, List, Union
+from abc import ABC
 from pymongo.collection import ObjectId
 from marshmallow import Schema
 from flask import request
-from ..connections.__interface import IConnection
-from ..query.__interface import IQuery
 from ._dataclasses import DataTable, DataField
 
 
@@ -65,7 +62,7 @@ class IDBObject(ABC):
         return out
 
     @classmethod
-    def get(cls, conn: IConnection, query: Union[IQuery, None] = None) -> Union['IDBObject', List['IDBObject'], None]:
+    def get(cls) -> Union['IDBObject', List['IDBObject'], None]:
         raise NotImplementedError()
 
     def add(self) -> bool:

@@ -1,6 +1,6 @@
 from functools import wraps, partial
 from datetime import datetime
-from typing import Any, Callable, List, Optional, Union, Dict, ParamSpec
+from typing import Any, Callable, List, Optional, Union, Dict
 from logging import Logger
 from flask import Blueprint, jsonify, request
 from flask.wrappers import Response
