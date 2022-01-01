@@ -118,16 +118,16 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
                     rm -f ${SCRIPTPATH}/lint/${fld}.json
                 fi
                 ${PYTHON_CMD} -m pip install -r ${FULL_PY_FOLDER}/requirements.txt
+                ${PYTHON_CMD} -m mypy --install-types
                 touch ${SCRIPTPATH}/lint/${fld}.json
                 ${PYTHON_CMD} -m pylint ${FULL_PY_FOLDER}/tranquillity/${fld}/ --reports=y --output-format=json:lint/${fld}.json,colorized
                 if [[ $? -ne 0 ]]; then
                     log "ERROR :: linting failed for folder ${fld}"
                     exit 1
                 fi
-                ${PYTHON_CMD} -m mypy --install-types
                 ${PYTHON_CMD} -m mypy ${FULL_PY_FOLDER}/tranquillity/${fld}/
                 if [[ $? -ne 0 ]]; then
-                    log "ERROR :: linting failed for folder ${fld}"
+                    log "ERROR :: mypy failed for folder ${fld}"
                     exit 1
                 fi
                 # mypy does not support match statements
