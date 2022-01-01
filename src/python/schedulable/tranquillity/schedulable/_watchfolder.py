@@ -25,12 +25,17 @@ class WatchFolder:
     _observer: Observer
     _filter: List[EventType]
 
-    def __init__(self, path: str, action: Callable[[EventType, str], Any], filter: Union[List[EventType], None] = None) -> None:
+    def __init__(self, path: str,
+                 action: Union[Callable[[EventType, str], Any], None] = None,
+                 filter: Union[List[EventType], None] = None) -> None:
         self._observer = Observer()
         self._fld = path
         if not isdir(path):
             makedirs(path, exist_ok=True)
-        self._action['action'] = action
+        if action is None:
+            self._action['action'] = lambda x, y: (x, y)
+        else:
+            self._action['action'] = action
         if filter is None:
             self._filter = [
                 EventType.CREATED,
@@ -40,6 +45,10 @@ class WatchFolder:
             ]
         else:
             self._filter = filter
+
+    def wrap(self, func: Callable[[EventType, str], Any]):
+        self._action['action'] = func
+        self.run()
 
     def _run(self) -> None:
         event_handler = Handler(self._action['action'], self._filter)

@@ -39,6 +39,10 @@ RUN_DOCKER=$(has_param "--docker -d" "$@")
 RUN_PUBLISH=$(has_param "--publish -p" "$@")
 RUN_EDITABLE=$(has_param "--editable -e" "$@")
 RUN_MODULES=$(has_param "--module --modules -m" "$@")
+PYPI_REPO='testpypi'
+if [[ $(has_param "--pypi" "$@") -eq 1 ]]; then
+    PYPI_REPO='pypi'
+fi
 
 log "Running tranquillity installer"
 log "linter=${RUN_LINT}"
@@ -113,17 +117,19 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
                 if [[ -f ${SCRIPTPATH}/lint/${fld}.json ]]; then
                     rm -f ${SCRIPTPATH}/lint/${fld}.json
                 fi
+                ${PYTHON_CMD} -m pip install -r ${FULL_PY_FOLDER}/requirements.txt
+                ${PYTHON_CMD} -m mypy --install-types
                 touch ${SCRIPTPATH}/lint/${fld}.json
                 ${PYTHON_CMD} -m pylint ${FULL_PY_FOLDER}/tranquillity/${fld}/ --reports=y --output-format=json:lint/${fld}.json,colorized
                 if [[ $? -ne 0 ]]; then
                     log "ERROR :: linting failed for folder ${fld}"
                     exit 1
                 fi
-                # ${PYTHON_CMD} -m mypy ${FULL_PY_FOLDER}/tranquillity/${fld}/
-                # if [[ $? -ne 0 ]]; then
-                #     log "ERROR :: linting failed for folder ${fld}"
-                #     exit 1
-                # fi
+                ${PYTHON_CMD} -m mypy ${FULL_PY_FOLDER}/tranquillity/${fld}/
+                if [[ $? -ne 0 ]]; then
+                    log "ERROR :: mypy failed for folder ${fld}"
+                    exit 1
+                fi
                 # mypy does not support match statements
             fi
         fi
@@ -142,7 +148,7 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
         fi
         if [[ ${RUN_BUILD} -eq 1 ]]; then
             log "Running build for folder ${fld}"
-            ${PYTHON_CMD} ${FULL_PY_FOLDER}/setup.py bdist --dist-dir ${FULL_PY_FOLDER}/dist
+            ${PYTHON_CMD} ${FULL_PY_FOLDER}/setup.py bdist --dist-dir ${SCRIPTPATH}/dist/${fld}
             if [[ $? -ne 0 ]]; then
                 log "ERROR :: build failed for folder ${fld}"
                 exit 1
@@ -163,7 +169,21 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
         fi
         if [[ ${RUN_PUBLISH} -eq 1 ]]; then
             log "Running publish for folder ${fld}"
-            # TODO: Upload with twine
+            if [[ -z ${PYPI_TOKEN} ]]; then
+                log "ERROR :: pypi token necessary"
+                exit 1
+            fi
+            
+            if [[ -z ${TESTPYPI_TOKEN} ]]; then
+                log "ERROR :: testpypi token necessary"
+                exit 1
+            fi
+            TMP_PWD=${TESTPYPI_TOKEN}
+            if [[ $(has_param "--pypi" "$@") -eq 1 ]]; then
+                TMP_PWD=${PYPI_TOKEN}
+            fi
+            echo $PYPI_REPO
+            twine upload --repository ${PYPI_REPO} --skip-existing --verbose -u __token__ -p ${TMP_PWD} ${SCRIPTPATH}/dist/${fld}/*
             if [[ $? -ne 0 ]]; then
                 log "ERROR :: publish failed for folder ${fld}"
                 exit 1

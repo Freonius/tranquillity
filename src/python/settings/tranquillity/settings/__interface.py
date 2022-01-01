@@ -251,16 +251,16 @@ class ISettings(ABC):
     @staticmethod
     def _get_file_name(file_name: Union[str, None], extension: str) -> str:
         exclusions: Set[str] = {}
-        match extension.strip().lower():
-            case('yml' | 'yaml'):
-                extension = 'y*ml'
-                exclusions = {'docker-compose', 'pubspec'}
-            case 'ini':
-                extension = 'ini'
-                exclusions = {}
-            case 'json':
-                extension = 'json'
-                exclusions = {'package'}
+        extension = extension.strip().lower()
+        if extension in {'yml', 'yaml'}:
+            extension = 'y*ml'
+            exclusions = {'docker-compose', 'pubspec'}
+        elif extension == 'ini':
+            extension = 'ini'
+            exclusions = {}
+        elif extension == 'json':
+            extension = 'json'
+            exclusions = {'package'}
         if file_name is None:
             cwd: str = environ['WORKING_DIR'] if 'WORKING_DIR' in environ.keys(
             ) else getcwd()

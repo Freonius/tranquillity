@@ -11,7 +11,7 @@ class Yaml(ISettings):
                  raise_on_missing: bool = True,
                  read_only: bool = False) -> None:
         super().__init__()
-        yaml_file = self._get_file_name(yaml_file, 'yml0')
+        yaml_file = self._get_file_name(yaml_file, 'yml')
         _d: Dict[str, Any] = {}
         with open(yaml_file, encoding='utf-8') as _fh:
             _d = load(_fh.read(), SafeLoader)

@@ -1,6 +1,6 @@
 from typing import Any, Dict, Iterable, Type
 from .__interface import IDBObject
-from ._dataclasses import DataTable, DataField, DataType
+from ._dataclasses import DataTable, DataField
 
 
 def dynamic(n: str, table: DataTable, fields: Iterable[DataField]) -> Type[IDBObject]:
