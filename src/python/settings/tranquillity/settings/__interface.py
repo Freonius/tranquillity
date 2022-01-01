@@ -61,7 +61,6 @@ class ISettings(ABC):
                 if key not in self._data.keys() or \
                         (self._defaults is not None and key not in self._defaults.keys()):
                     raise KeyError(f'key "{key}" missing')
-            del key
     # pylint: enable=too-many-arguments
 
     def __getitem__(self, key: str) -> Union[str, None]:

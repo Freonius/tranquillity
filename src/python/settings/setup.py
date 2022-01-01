@@ -19,4 +19,4 @@ setup(name='tranquillity.settings',
       version=_version, packages=find_packages(exclude=['test', ],),
       install_requires=reqs,
       author='Federico Pirani',
-      description='Tranquillity exceptions.')
+      description='Tranquillity settings.')
