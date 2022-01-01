@@ -12,21 +12,27 @@ jobs:
         with:
           python-version: "3.10"
       - name: Run linter
-        run: bash ./setup.sh py -l -m shell utils exceptions
+        run: bash ./setup.sh py -l -m shell utils exceptions settings
       - name: Run all tests
-        run: bash ./setup.sh py -t -m shell utils exceptions
+        run: bash ./setup.sh py -t -m shell utils exceptions settings
       - name: Upload coverage
         uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/shell.xml,./coverage/utils.xml,./coverage/exceptions.xml
+          files: ./coverage/shell.xml,./coverage/utils.xml,./coverage/exceptions.xml,./coverage/settings.xml
       - name: Build
-        run: bash ./setup.sh py -b -m shell
+        run: bash ./setup.sh py -b -m shell utils exceptions settings
+      - name: Publish testpypi
+        run: bash ./setup.sh py -p -m shell utils exceptions settings
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          TESTPYPI_TOKEN: ${{ secrets.TESTPYPI_TOKEN }}
+          
       # - name: Publish package to PyPI
       #   if: github.ref == 'refs/heads/master'
       #   uses: pypa/gh-action-pypi-publish@release/v1
       #   with:
       #     user: __token__
       #     password: ${{ secrets.PYPI_TOKEN }}
-      #     packages_dir: ./src/python/dist/
+      #     packages_dir: ./dist
       
