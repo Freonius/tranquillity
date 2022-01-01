@@ -117,6 +117,7 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
                 if [[ -f ${SCRIPTPATH}/lint/${fld}.json ]]; then
                     rm -f ${SCRIPTPATH}/lint/${fld}.json
                 fi
+                ${PYTHON_CMD} -m pip install -r ${FULL_PY_FOLDER}/requirements.txt
                 touch ${SCRIPTPATH}/lint/${fld}.json
                 ${PYTHON_CMD} -m pylint ${FULL_PY_FOLDER}/tranquillity/${fld}/ --reports=y --output-format=json:lint/${fld}.json,colorized
                 if [[ $? -ne 0 ]]; then
