@@ -11,21 +11,13 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: "3.10"
-      - name: Run linter
-        run: bash ./setup.sh py -l -m shell utils exceptions
-      - name: Run all tests
-        run: bash ./setup.sh py -t -m -i shell utils exceptions
-      - name: Run linter
-        run: bash ./setup.sh py -l -m settings
-      - name: Run all tests
-        run: bash ./setup.sh py -t -m -i settings 
+      - name: Run linter, tests, and build
+        run: bash ./setup.sh py -l -t -i -b -m shell utils exceptions settings
       - name: Upload coverage
         uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/shell.xml,./coverage/utils.xml,./coverage/exceptions.xml,./coverage/settings.xml
-      - name: Build
-        run: bash ./setup.sh py -b -m shell utils exceptions settings
       - name: Publish testpypi
         run: bash ./setup.sh py -p -m shell utils exceptions settings
         env:
