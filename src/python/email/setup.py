@@ -12,8 +12,9 @@ load_dotenv(fld + '..' + sep + '..' + sep + '..' + sep + '.env')
 readme_path = fld + '..' + sep + '..' + sep + '..' + sep + 'readme.md'
 
 ld = ''
-with open(readme_path, encoding='utf-8', mode='r') as _f:
-    ld = _f.read()
+if isfile(readme_path):
+    with open(readme_path, encoding='utf-8', mode='r') as _f:
+        ld = _f.read()
 
 _version = getenv('TQ_VERSION', '0.1.0')
 
