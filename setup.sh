@@ -169,7 +169,7 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
         fi
         if [[ ${RUN_BUILD} -eq 1 ]]; then
             log "Running build for folder ${fld}"
-            ${PYTHON_CMD} ${FULL_PY_FOLDER}/setup.py bdist --dist-dir ${SCRIPTPATH}/dist/${fld}
+            ${PYTHON_CMD} ${FULL_PY_FOLDER}/setup.py bdist_wheel --dist-dir ${SCRIPTPATH}/dist/${fld}
             if [[ $? -ne 0 ]]; then
                 log "ERROR :: build failed for folder ${fld}"
                 exit 1
@@ -210,11 +210,16 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
                 exit 1
             fi
         fi
+        # if [[ 0 -eq 1 ]]; then
+        #     mv ${FULL_PY_FOLDER}/requirements.txt ${FULL_PY_FOLDER}/requirements-tmp.txt
+        #     grep -v -e "^tranquillity" ${FULL_PY_FOLDER}/requirements-tmp.txt >> ${FULL_PY_FOLDER}/requirements.txt
+        # fi
     done
-    if [[ ${RUN_DOCKER} -eq 1 ]]; then
-        log "Running docker"
-        # TODO: docker buil
-    fi
+fi
+
+if [[ ${RUN_DOCKER} -eq 1 ]]; then
+    log "Running docker"
+    podman build -f "${SCRIPTPATH}/Dockerfile" --rm -t "federiker/tranquillity:latest" "."
 fi
 
 if [[ ${RUN_DART} -eq 1 ]]; then
