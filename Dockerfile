@@ -6,15 +6,18 @@ ADD . .
 
 RUN apk --update add --no-cache g++ bash libffi-dev && \
     pip install --no-cache-dir --upgrade pip && \
-    bash setup.sh py -t -l -b -i -m shell utils exceptions settings  && \
+    bash setup.sh py -t -l -b -i -r -m shell utils exceptions settings  && \
     apk del g++ bash
 
 CMD [ "python" ]
 
-# FROM python:3.10-alpine
+FROM python:3.10-alpine
 
-# WORKDIR /app/
+WORKDIR /app/
 
-# COPY --from=build /app/dist/ /app/dist/
+COPY . .
 
-# RUN pip install --no-cache-dir --upgrade pip
+RUN apk --update add --no-cache g++ bash libffi-dev && \
+    pip install --no-cache-dir --upgrade pip && \
+    bash setup.sh py -i -m shell utils exceptions settings  && \
+    apk del g++ bash
