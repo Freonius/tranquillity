@@ -1,10 +1,9 @@
-from os import sep
 from sys import stdout
-from logging import DEBUG, INFO, ERROR, WARNING, LogRecord, Logger, StreamHandler, getLoggerClass, Formatter, FileHandler
+from logging import DEBUG, INFO, ERROR, WARNING, Logger, StreamHandler, Formatter, FileHandler
 from typing import Union
 from re import compile, Pattern, Match, finditer
 from typing import Union, Callable, Set
-from pickle import dumps, loads
+from pickle import dumps
 from pika import BlockingConnection, ConnectionParameters, PlainCredentials
 from pika.adapters.blocking_connection import BlockingChannel
 from .__interfaces import ILogHandler
@@ -12,7 +11,7 @@ from tranquillity.shell import Shell
 from tranquillity.settings import ISettings, Yaml
 from tranquillity.enums import LogType
 from tranquillity.exceptions import ConnectionException
-from .__custom_log_record import CustomLogRecordException, CustomLogRecord
+from .__custom_log_record import CustomLogRecord
 
 # filterwarnings('ignore')
 
@@ -172,13 +171,13 @@ class RabbitLogHandler(ILogHandler):
         if _host is None:
             raise ConnectionException('host is not defined')
         _port: int = int(str(self._settings.lookup(_ks('port'), '5984')))
-        _protocol: Union[str, None] = None
-        try:
-            _protocol = self._settings.lookup(_ks('protocol'), 'http')
-        except KeyError:
-            pass
-        if _protocol is None:
-            _protocol = 'http'
+        # _protocol: Union[str, None] = None
+        # try:
+        #     _protocol = self._settings.lookup(_ks('protocol'), 'http')
+        # except KeyError:
+        #     pass
+        # if _protocol is None:
+        #     _protocol = 'http'
         _username: Union[str, None] = None
         _password: Union[str, None] = None
         try:
