@@ -22,6 +22,11 @@ if isfile(fld + 'requirements.txt'):
     reqs = list(filter(lambda x: x != '' and not x.startswith(
         '#'), list(map(str.strip, open(fld + 'requirements.txt', 'r').readlines()))))
 
+for _i in range(len(reqs)):
+    if reqs[_i].startswith('tranquillity'):
+        reqs[_i] = reqs[_i].replace('{TQ_VER}', _version)
+
 setup(name='tranquillity.utils', version=_version, packages=find_packages(exclude=['test', ],), install_requires=reqs,
       author='Federico Pirani',
-      description='Tranquillity utils and conversions.', long_description=ld)
+      description='Tranquillity utils and conversions.', long_description=ld,
+      long_description_content_type='text/markdown')
