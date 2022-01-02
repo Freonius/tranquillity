@@ -113,6 +113,7 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
     mv ${SCRIPTPATH}/requirements.txt ${SCRIPTPATH}/requirements-tmp.txt
     grep -v -e "^tranquillity" ${SCRIPTPATH}/requirements-tmp.txt > ${SCRIPTPATH}/requirements.txt
     rm ${SCRIPTPATH}/requirements-tmp.txt
+    echo -e "\npython-dotenv~=0.19.2" >> ${SCRIPTPATH}/requirements.txt
     log "Installing all dependencies"
     ${PYTHON_CMD} -m pip install -r ${SCRIPTPATH}/requirements.txt
     DEPS_OK=$?
