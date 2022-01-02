@@ -31,4 +31,9 @@ setup(name='tranquillity.settings',
       install_requires=reqs,
       author='Federico Pirani',
       description='Tranquillity settings.', long_description=ld,
-      long_description_content_type='text/markdown')
+      long_description_content_type='text/markdown',
+      project_urls={
+          'Source': 'https://github.com/Freonius/tranquillity',
+          'Tracker': 'https://github.com/Freonius/tranquillity/issues',
+      },
+      url='https://github.com/Freonius/tranquillity',)

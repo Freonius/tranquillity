@@ -29,4 +29,9 @@ for _i in range(len(reqs)):
 setup(name='tranquillity.enums', version=_version, packages=find_packages(exclude=['test', ],), install_requires=reqs,
       author='Federico Pirani',
       description='Tranquillity enums.', long_description=ld,
-      long_description_content_type='text/markdown')
+      long_description_content_type='text/markdown',
+      project_urls={
+    'Source': 'https://github.com/Freonius/tranquillity',
+    'Tracker': 'https://github.com/Freonius/tranquillity/issues',
+},
+    url='https://github.com/Freonius/tranquillity',)

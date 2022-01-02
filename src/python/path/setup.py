@@ -29,4 +29,9 @@ for _i in range(len(reqs)):
 setup(name='tranquillity.path', version=_version, packages=find_packages(exclude=['test', ],), install_requires=reqs,
       author='Federico Pirani',
       description='Tranquillity path.', long_description=ld,
-      long_description_content_type='text/markdown')
+      long_description_content_type='text/markdown',
+      project_urls={
+    'Source': 'https://github.com/Freonius/tranquillity',
+    'Tracker': 'https://github.com/Freonius/tranquillity/issues',
+},
+    url='https://github.com/Freonius/tranquillity',)
