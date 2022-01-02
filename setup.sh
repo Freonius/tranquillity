@@ -169,7 +169,7 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
         fi
         if [[ ${RUN_BUILD} -eq 1 ]]; then
             log "Running build for folder ${fld}"
-            ${PYTHON_CMD} ${FULL_PY_FOLDER}/setup.py bdist_wheel --dist-dir ${SCRIPTPATH}/dist/${fld}
+            ${PYTHON_CMD} ${FULL_PY_FOLDER}/setup.py bdist --dist-dir ${SCRIPTPATH}/dist/${fld}
             if [[ $? -ne 0 ]]; then
                 log "ERROR :: build failed for folder ${fld}"
                 exit 1
