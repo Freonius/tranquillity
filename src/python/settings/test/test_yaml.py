@@ -41,6 +41,10 @@ notabool: 1
         fh.write(JSON)
     with open(fld.join('another.yml'), 'w') as fh:
         fh.write('')
+    with open(fld.join('3.yml'), 'w') as fh:
+        fh.write('')
+    with open(fld.join('4.yml'), 'w') as fh:
+        fh.write('')
     with open(fld.join('settings.properties'), 'w') as fh:
         fh.write(INI)
     with open(fld.join('settings.ini'), 'w') as fh:
@@ -51,6 +55,7 @@ notabool: 1
 def test_yaml(fld):
     from os import chdir, remove, sep
     from ..tranquillity.settings import Yaml
+    from tranquillity.exceptions import ConversionError
     chdir(fld)
     y = Yaml()
 
@@ -109,6 +114,36 @@ def test_yaml(fld):
         y.lookup_ns({'dsfsddsfd'})
     with raises(TypeError):
         y.get_bool('abool', 6)
+    y = Yaml(read_only=False)
+    y['val'] = 'val'
+    y = Yaml(raise_on_missing=False)
+    assert y['val'] == 'val'
+    assert y.get_eval('val') == 'val'
+    assert y.get_eval('blub') == None
+    with raises(KeyError):
+        y.get_ns('blub')
+    assert y.get_int('blub') is None
+    assert y.get_float('blub') is None
+    with raises(TypeError):
+        y.get_int('blub', '1')
+    with raises(TypeError):
+        y.lookup_int({'blub'}, '1')
+    with raises(TypeError):
+        y.get_float('blub', '1')
+    with raises(ConversionError):
+        y.get_int('conn.mongo.host')
+    with raises(ConversionError):
+        y.get_float('conn.mongo.host')
+    with raises(KeyError):
+        y.get_int_ns('blub')
+    with raises(KeyError):
+        y.get_float_ns('blub')
+    assert y.lookup_int({'blub'}, 1) == 1
+    with raises(KeyError):
+        y.lookup_int_ns({'blub'})
+    remove(fld + sep + 'settings.yaml')
+    with raises(Exception):
+        Yaml()
 
 
 def test_env():
@@ -138,6 +173,10 @@ def test_json(fld):
     j = Json(read_only=True)
     with raises(NotAllowedOperation):
         j.set('val', 'val')
+    j = Json(read_only=False)
+    j.set('val', 'val')
+    j = Json()
+    assert j['val'] == 'val'
     remove(fld + sep + 'settings.json')
     with raises(Exception):
         j = Json()
@@ -178,6 +217,9 @@ def test_ini(fld):
     from ..tranquillity.settings import Ini
     i = Ini('./settings.ini')
     assert i.get('app.name') == 'Tranquillity'
+    i.set('section.salutation', 'hello')
+    i = Ini()
+    assert i['section.salutation'] == 'hello'
     with raises(TypeError):
         Ini(1)
     with raises(Exception):
@@ -190,6 +232,9 @@ def test_properties(fld):
     from ..tranquillity.settings import Properties
     i = Properties('./settings.properties')
     assert i.get('app.name') == 'Tranquillity'
+    i['section.abc'] = 'abc'
+    i = Properties('./settings.properties')
+    assert i['section.abc'] == 'abc'
     with raises(TypeError):
         Properties(1)
     with raises(Exception):
