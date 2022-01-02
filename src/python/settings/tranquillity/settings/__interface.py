@@ -85,7 +85,8 @@ class ISettings(ABC):
             if self._defaults is not None:
                 if key in self._defaults.keys():
                     return self._defaults[key]
-                raise KeyError(f'key "{key}" not found')
+                if self._raise_on_missing:
+                    raise KeyError(f'key "{key}" not found')
             if self._raise_on_missing:
                 raise KeyError(f'key "{key}" not found')
             return None

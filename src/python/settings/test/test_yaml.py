@@ -1,12 +1,54 @@
 from sys import path
 from pytest import raises
 from os.path import realpath, dirname, sep
+from pytest import fixture
+from _pytest.tmpdir import TempdirFactory
+
 path.append(realpath(dirname(__file__) +
             f'{sep}..'))
 
 
-def test_yaml():
+@fixture(scope='session')
+def fld(tmpdir_factory: TempdirFactory):
+    fld = tmpdir_factory.mktemp('test')
+    fn = fld.join('tranquillity.yml')
+    JSON = '''
+    { "value": { "value": 2 } }
+    '''
+    YAML = '''
+app:
+  name: Tranquillity
+conn:
+  mongo:
+    host: mongo
+    port: 1234
+mylist:
+  - 1
+  - 2
+  - 3
+abool: true
+notabool: 1
+'''
+    with open(fn, 'w') as fh:
+        fh.write(YAML)
+    with open(fld.join('settings.yaml'), 'w') as fh:
+        fh.write(YAML)
+    with open(fld.join('settings.json'), 'w') as fh:
+        fh.write(JSON)
+    with open(fld.join('another.yml'), 'w') as fh:
+        fh.write('')
+    return str(fld)
+
+
+def test_yaml(fld):
+    from os import chdir, remove, sep
     from ..tranquillity.settings import Yaml
+    chdir(fld)
+    y = Yaml()
+
+    remove(fld + sep + 'tranquillity.yml')
+    y = Yaml()
+    remove(fld + sep + 'another.yml')
     y = Yaml()
     assert y.get('app.name') == 'Tranquillity'
     assert y.get('not.here', 'default') == 'default'
@@ -51,6 +93,14 @@ def test_yaml():
         y.get_ns('k')
     assert y.get_ns('conn.mongo.port') == '1234'
     assert isinstance(str(y), str)
+    assert y.get_eval('mylist') == [1, 2, 3]
+    assert y.get_bool('abool') is True
+    assert y.get_bool('notabool') is True
+    y._raise_on_missing = False
+    with raises(KeyError):
+        y.lookup_ns({'dsfsddsfd'})
+    with raises(TypeError):
+        y.get_bool('abool', 6)
 
 
 def test_env():
@@ -62,3 +112,58 @@ def test_env():
     assert e['xyz'] == 'xyz'
     assert environ['XYZ'] == 'xyz'
     assert isinstance(e.path, list)
+
+
+def test_json(fld):
+    from os import chdir, remove, sep
+    chdir(fld)
+    from ..tranquillity.settings import Json
+    j = Json()
+    assert j['value.value'] == '2'
+    j['value.value'] = '3'
+    assert j['value.value'] == '3'
+    remove(fld + sep + 'settings.json')
+    with raises(Exception):
+        j = Json()
+
+
+def test_interface():
+    from ..tranquillity.settings import ISettings
+
+    class T(ISettings):
+        def __init__(self) -> None:
+            super().__init__()
+            self._config(1)
+
+        def _update(self, key: str, val: str) -> None:
+            return super()._update(key, val)
+
+    class T2(ISettings):
+        def __init__(self) -> None:
+            super().__init__()
+            self._config({'key': 'val'}, required_fields=['key2'])
+
+        def _update(self, key: str, val: str) -> None:
+            return super()._update(key, val)
+
+    class T3(ISettings):
+        def __init__(self) -> None:
+            super().__init__()
+            self._config({'key': 'val'}, raise_on_missing=False,
+                         defaults={'yep': '1'})
+
+        def _update(self, key: str, val: str) -> None:
+            return super()._update(key, val)
+
+    with raises(TypeError):
+        T()
+
+    with raises(KeyError):
+        T2()
+
+    t = T3()
+    assert t.get('nope') is None
+    assert t.get('yep') == '1'
+    with raises(KeyError):
+        t._raise_on_missing = True
+        t.get('nope')
