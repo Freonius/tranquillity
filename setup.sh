@@ -93,8 +93,29 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
         log "OK"
     fi
     if [[ ${RUN_TESTS} -eq 1 || ${RUN_LINT} -eq 1 || ${RUN_PUBLISH} -eq 1 ]]; then
+        log "Installing dev dependencies"
         ${PYTHON_CMD} -m pip install -r ${SCRIPTPATH}/requirements-dev.txt
     fi
+    if [[ -f ${SCRIPTPATH}/requirements.txt ]]; then
+        rm ${SCRIPTPATH}/requirements.txt
+    fi
+    touch ${SCRIPTPATH}/requirements.txt
+    for req in $(ls ${SCRIPTPATH}/src/python/*/requirements.txt); do
+        cat ${req} >> ${SCRIPTPATH}/requirements.txt
+        if [[ -s ${req} ]]; then
+            echo -e "\n" >> ${SCRIPTPATH}/requirements.txt
+        fi
+    done
+    log "Installing all dependencies"
+    # ${PYTHON_CMD} -m pip install -r ${SCRIPTPATH}/requirements.txt
+    # DEPS_OK=$?
+    rm ${SCRIPTPATH}/requirements.txt
+    # if [[ ${DEPS_OK} -eq 0 ]]; then
+    #     log "Dependencies installed correctly"
+    # else
+    #     log "Could not install dependencies"
+    #     exit 1
+    # fi
     if [[ ${RUN_LINT} -eq 1 ]]; then
         if [[ ! -d ${SCRIPTPATH}/lint ]]; then
             mkdir -p ${SCRIPTPATH}/lint

@@ -36,6 +36,11 @@ conn:
     
 
 log:
+  rotation:
+    enabled: true
+    daily: false
+    size: 100k
+    keep: 10
   loggers:
     stream:
       enabled: true

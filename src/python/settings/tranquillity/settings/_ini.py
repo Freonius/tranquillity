@@ -22,4 +22,4 @@ class Ini(ISettings):
         self._config(_d)
 
     def _update(self, key: str, val: str) -> None:
-        pass  # TODO: Update
+        pass  # TODO: Update # pragma: no cover
