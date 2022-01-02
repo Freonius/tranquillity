@@ -1,16 +1,20 @@
-FROM python:3.10-alpine
+FROM python:3.10-alpine AS build
 
 WORKDIR /app/
 
-ADD ./requirements.txt .
+ADD . .
 
-RUN apk --update add --no-cache g++ && \
+RUN apk --update add --no-cache g++ bash libffi-dev && \
     pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r /app/requirements.txt && \
-    rm -f /app/requirements.txt && \
-    apk del g++
-
-ADD ./src/python/ /tq/
-ADD ./example.yml /app/settings.yml
+    bash setup.sh py -t -l -b -i -m shell utils exceptions settings  && \
+    apk del g++ bash
 
 CMD [ "python" ]
+
+# FROM python:3.10-alpine
+
+# WORKDIR /app/
+
+# COPY --from=build /app/dist/ /app/dist/
+
+# RUN pip install --no-cache-dir --upgrade pip

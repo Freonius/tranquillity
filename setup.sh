@@ -210,11 +210,16 @@ if [[ ${RUN_PYTHON} -eq 1 ]]; then
                 exit 1
             fi
         fi
+        # if [[ 0 -eq 1 ]]; then
+        #     mv ${FULL_PY_FOLDER}/requirements.txt ${FULL_PY_FOLDER}/requirements-tmp.txt
+        #     grep -v -e "^tranquillity" ${FULL_PY_FOLDER}/requirements-tmp.txt >> ${FULL_PY_FOLDER}/requirements.txt
+        # fi
     done
-    if [[ ${RUN_DOCKER} -eq 1 ]]; then
-        log "Running docker"
-        # TODO: docker buil
-    fi
+fi
+
+if [[ ${RUN_DOCKER} -eq 1 ]]; then
+    log "Running docker"
+    podman build -f "${SCRIPTPATH}/Dockerfile" --rm -t "federiker/tranquillity:latest" "."
 fi
 
 if [[ ${RUN_DART} -eq 1 ]]; then
