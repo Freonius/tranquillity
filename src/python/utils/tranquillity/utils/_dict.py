@@ -1,5 +1,7 @@
 from typing import Any, Callable, Dict, Union
+# pylint: disable=redefined-builtin
 from re import compile, Pattern, match
+# pylint: enable=redefined-builtin
 from ast import literal_eval
 from unflatten import unflatten
 
