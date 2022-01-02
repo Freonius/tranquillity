@@ -11,7 +11,7 @@ from typing import Any, Dict, Iterable, List, Set, Tuple, Union
 from ast import literal_eval
 # pylint: disable=no-name-in-module,import-error
 from tranquillity.exceptions import NotAllowedOperation, ConversionError
-from tranquillity.utils import flatten_dict, to_bool
+from tranquillity.utils import flatten_dict, to_bool, unflatten_dict
 # pylint: enable=no-name-in-module,import-error
 
 
@@ -20,6 +20,7 @@ class ISettings(ABC):
     Interface class for all settings.
     '''
     _data: Dict[str, str] = {}
+    _raw_data: Dict = {}
     _raise_on_missing: bool = True
     _defaults: Union[Dict[str, str], None] = None
     _read_only: bool = False
@@ -119,6 +120,7 @@ class ISettings(ABC):
             raise TypeError(f'val must be of type str, got {type(val)}')
         key = key.lower()
         self._data[key] = val
+        self._raw_data = unflatten_dict(self._data)
         self._update(key, val)
 
     def get_int(self, key: str, default: Union[int, None] = None) -> Union[int, None]:

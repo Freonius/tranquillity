@@ -1,4 +1,9 @@
 from typing import Any, Callable, Dict, Union
+# pylint: disable=redefined-builtin
+from re import compile, Pattern, match
+# pylint: enable=redefined-builtin
+from ast import literal_eval
+from unflatten import unflatten
 
 
 def flatten_dict(
@@ -27,7 +32,10 @@ def flatten_dict(
     for key in data.keys():
         if isinstance(data[key], dict):
             if len(data[key].keys()) == 0:
-                continue
+                _prefix: str = ''
+                if key_prefix is not None:
+                    _prefix = key_prefix + '.'
+                out[(_prefix + key).lower()] = str({})
             sub_prefix: str = ''
             if key_prefix is not None:
                 sub_prefix = key_prefix + '.'
@@ -49,6 +57,21 @@ def flatten_dict(
             del prefix
     del key
     if key_map is not None:
-        return {key_map(out_key): out_val for out_key, out_val in out.items()}
-    return out
+        return {key_map(out_key): str(out_val) for out_key, out_val in out.items()}
+    return {str(out_key): str(out_val) for out_key, out_val in out.items()}
     # pylint: enable=too-many-branches
+
+
+def unflatten_dict(data: Dict[str, str]) -> Dict:
+    if not isinstance(data, dict):
+        raise TypeError
+    _in_data: Dict[str, str] = data.copy()
+    _is_evaluable: Pattern = compile(
+        r'^\s*(\[.*\]|\d+|\d+\.\d*|\d*\.\d+|True|False|None|\{\})\s*$')
+    for _key in _in_data.keys():
+        if match(_is_evaluable, _in_data[_key]) is not None:
+            _in_data[_key] = literal_eval(_in_data[_key])
+    _out = unflatten(_in_data)
+    if isinstance(_out, dict):
+        return _out
+    raise TypeError  # pragma: no cover

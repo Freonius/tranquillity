@@ -8,8 +8,9 @@ path.append(realpath(dirname(__file__) +
 
 
 def test_dict():
-    from ..tranquillity.utils import flatten_dict
-    assert flatten_dict({'1': {'2': {'3': [1, 2, 3]}}, 'b': {'c': {}}})[
+    from ..tranquillity.utils import flatten_dict, unflatten_dict
+    d = {'1': {'2': {'3': [1, 2, 3]}}, 'b': {'c': {}}}
+    assert flatten_dict(d)[
         '1.2.3'] == str([1, 2, 3])
     assert flatten_dict({'1': {'2': {'3': [1, 2, 3]}}, 'b': {'c': {}}}, key_map=None)[
         '1.2.3'] == str([1, 2, 3])
@@ -20,3 +21,6 @@ def test_dict():
     with raises(TypeError):
         flatten_dict({'1': 1}, key_map=1)
     assert flatten_dict({}) == {}
+    assert unflatten_dict(flatten_dict(d)) == d
+    with raises(TypeError):
+        unflatten_dict(1)
