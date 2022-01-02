@@ -17,4 +17,4 @@ class Sqlite(ISettings):
     # pylint: enable=too-many-arguments
 
     def _update(self, key: str, val: str) -> None:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover

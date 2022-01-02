@@ -15,6 +15,10 @@ def fld(tmpdir_factory: TempdirFactory):
     JSON = '''
     { "value": { "value": 2 } }
     '''
+    INI = '''
+[app]
+name = Tranquillity
+'''
     YAML = '''
 app:
   name: Tranquillity
@@ -37,6 +41,10 @@ notabool: 1
         fh.write(JSON)
     with open(fld.join('another.yml'), 'w') as fh:
         fh.write('')
+    with open(fld.join('settings.properties'), 'w') as fh:
+        fh.write(INI)
+    with open(fld.join('settings.ini'), 'w') as fh:
+        fh.write(INI)
     return str(fld)
 
 
@@ -118,13 +126,74 @@ def test_json(fld):
     from os import chdir, remove, sep
     chdir(fld)
     from ..tranquillity.settings import Json
+    from tranquillity.exceptions import NotAllowedOperation
     j = Json()
     assert j['value.value'] == '2'
     j['value.value'] = '3'
     assert j['value.value'] == '3'
+    with raises(TypeError):
+        j.set(1, 1)
+    with raises(TypeError):
+        j.set('1', 1)
+    j = Json(read_only=True)
+    with raises(NotAllowedOperation):
+        j.set('val', 'val')
     remove(fld + sep + 'settings.json')
     with raises(Exception):
         j = Json()
+
+
+def test_kv():
+    from ..tranquillity.settings import KVSetting
+    k = KVSetting()
+    k['a.b'] = '1'
+    assert k['a.b'] == '1'
+    k = KVSetting({'a': {'b': '1'}})
+    assert k['a.b'] == '1'
+    with raises(TypeError):
+        KVSetting(1)
+
+
+def test_spring():
+    from ..tranquillity.settings import SpringConfig
+    with raises(NotImplementedError):
+        SpringConfig()
+
+
+def test_api():
+    from ..tranquillity.settings import Api
+    with raises(NotImplementedError):
+        Api()
+
+
+def test_sqlite():
+    from ..tranquillity.settings import Sqlite
+    with raises(NotImplementedError):
+        Sqlite('', '', '', '',)
+
+
+def test_ini(fld):
+    from os import chdir
+    chdir(fld)
+    from ..tranquillity.settings import Ini
+    i = Ini('./settings.ini')
+    assert i.get('app.name') == 'Tranquillity'
+    with raises(TypeError):
+        Ini(1)
+    with raises(Exception):
+        Ini('./jjj.ini')
+
+
+def test_properties(fld):
+    from os import chdir
+    chdir(fld)
+    from ..tranquillity.settings import Properties
+    i = Properties('./settings.properties')
+    assert i.get('app.name') == 'Tranquillity'
+    with raises(TypeError):
+        Properties(1)
+    with raises(Exception):
+        Properties('./jjj.ini')
 
 
 def test_interface():

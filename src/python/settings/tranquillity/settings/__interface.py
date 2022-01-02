@@ -291,4 +291,4 @@ class ISettings(ABC):
 
     @abstractmethod
     def _update(self, key: str, val: str) -> None:
-        pass
+        pass    # pragma: no cover
