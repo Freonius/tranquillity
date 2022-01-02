@@ -23,15 +23,17 @@ class CustomLogger(Logger):
     def _calc_level(self, _log_name: str) -> int:
         level: int = DEBUG
         try:
-            match self._settings.get_ns(f'log.loggers.{_log_name}.level').upper().strip():
-                case 'DEBUG':
-                    level = DEBUG
-                case 'INFO':
-                    level = INFO
-                case 'WARNING':
-                    level = WARNING
-                case 'ERROR':
-                    level = ERROR
+            _val: str = self._settings.get_ns(
+                f'log.loggers.{_log_name}.level').upper().strip()
+            if _val == 'DEBUG':
+                level = DEBUG
+            if _val == 'INFO':
+                level = INFO
+            if _val == 'WARNING':
+                level = WARNING
+            if _val == 'ERROR':
+                level = ERROR
+            del _val
         except KeyError:
             pass
         if level is DEBUG and not __debug__:
