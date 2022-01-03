@@ -54,4 +54,4 @@ class ILogHandler(StreamHandler, ABC):
 
     @abstractmethod
     def _custom_emit(self, record: CustomLogRecord) -> None:
-        pass
+        pass    # pragma: no cover

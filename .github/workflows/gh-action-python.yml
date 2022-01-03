@@ -3,25 +3,27 @@ on: [push]
 jobs:
   Python:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
       - name: Check docker and docker-compose
         run: docker info && docker-compose version
       - name: Pull necessary docker images (for testing)
-        run: docker pull hyness/spring-cloud-config-server:latest
+        run: |
+          docker pull hyness/spring-cloud-config-server:latest && \
+          docker pull elasticsearch:7.13.2
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: "3.10"
       - name: Run linter, tests, and build
-        run: bash ./setup.sh py -t -i -b -m shell utils exceptions settings
+        run: bash ./setup.sh py -t -i -b -m shell utils exceptions settings logger
       - name: Upload coverage
         uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/shell.xml,./coverage/utils.xml,./coverage/exceptions.xml,./coverage/settings.xml
+          files: ./coverage/shell.xml,./coverage/utils.xml,./coverage/exceptions.xml,./coverage/settings.xml,./coverage/logger.xml
       - name: Publish testpypi
         run: bash ./setup.sh py -p -m shell utils exceptions settings
         env:

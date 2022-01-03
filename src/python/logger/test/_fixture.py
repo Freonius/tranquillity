@@ -19,7 +19,7 @@ conn:
 log:
   rotation:
     enabled: true
-    daily: false
+    daily: true
     size: 100k
     keep: 10
   loggers:
@@ -29,14 +29,14 @@ log:
     file:
       enabled: true
       level: debug
-      file: ./logs/{{app.name}}.log
+      file: ./logs/\u007b\u007bapp.name\u007d\u007d.log
     elasticsearch:
       level: info
       index: logs
       enabled: true
     sql:
       type: postgres
-      enabled: false
+      enabled: true
       db: tq
       table: logs
       schema: tranquillity

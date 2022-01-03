@@ -11,11 +11,11 @@ from .__interfaces import ILogHandler
 
 def _convert_int2level(level: int) -> str:
     if level is DEBUG:
-        return 'DEBUG'
+        return 'DEBUG'  # pragma: no cover
     if level is INFO:
         return 'INFO'
     if level is WARNING:
-        return 'WARNING'
+        return 'WARNING' # pragma: no cover
     if level is ERROR:
         return 'ERROR'
     return 'UNKNOWN'
@@ -65,11 +65,12 @@ class ElasticLogHandler(ILogHandler):
         if isinstance(date_filter, tuple):
             query['range'] = {}
             query['range']['time'] = {
-                'gte': date_filter[0],
-                'lte': date_filter[1]
+                'gte': date_filter[0].isoformat(),
+                'lte': date_filter[1].isoformat(),
             }
-        elif isinstance(date_filter, datetime):
-            query['match'] = {'time': date_filter}
+        if isinstance(date_filter, datetime):
+            query['match'] = {
+                'time': date_filter.isoformat()}
         if term is not None:
             if 'match' not in query.keys():
                 query['match'] = {}
