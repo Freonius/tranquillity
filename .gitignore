@@ -16,3 +16,4 @@
 /logs
 /lint
 /.idea
+*.db

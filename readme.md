@@ -90,9 +90,64 @@ TODO
 
 TODO
 
-### Settings :soon:
+### Settings :ok:
 
-TODO
+Different classes to get application settings. All the data will be flat and accessible through 'key.subkey'.
+
+Imagine you have this Yaml file
+
+```yaml
+# settings.yml
+app:
+  name: Cool-Name
+  port: 8000
+```
+
+If the name is `settings.yml` or `tranquillity.yml`, and it's in the main project folder, you don't even have to specify
+the file name.
+
+```python
+from tranquillity.settings import Yaml, Env
+
+settings = Yaml()
+
+print(settings['app.name']) # Prints 'Cool-Name'
+
+env = Env()
+env['path'] # Prints the PATH environment
+```
+
+The supported settings providers are:
+
+- Yaml \*
+- Json \*
+- Ini \*
+- Properties
+- Spring Config Server
+- Sqlite \*\*
+- Environment Variables
+- Any dictionary
+
+\* Defaults to tranquillity or settings + extension
+\*\* Defaults to in memory db
+
+It is also possible to implement other providers by extending the `ISettings` class.
+
+```python
+from tranquillity.settings import ISettings
+
+class NewSetting(ISettings):
+    def __init__(self):
+        super().__init__()
+        self._config(
+            {'key': 'value'},                   # The data to use
+            defaults={'missing': 'no problem'}, # Default values if missing
+            raise_on_missing=True,              # If False it will return None if the key is missing
+            read_only=True)                     # Don't update
+
+    def _update(self, key: str, val: str) -> None:
+        pass    # Your update operation
+```
 
 ### Shell :ok:
 

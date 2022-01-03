@@ -230,7 +230,7 @@ fi
 
 if [[ ${RUN_DOCKER} -eq 1 ]]; then
     log "Running docker"
-    podman build -f "${SCRIPTPATH}/Dockerfile" --rm -t "federiker/tranquillity:latest" "."
+    docker build -f "${SCRIPTPATH}/Dockerfile" --rm -t "freonius/tranquillity:latest" "."
 fi
 
 if [[ ${RUN_DART} -eq 1 ]]; then

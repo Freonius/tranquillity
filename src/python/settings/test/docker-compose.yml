@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  spring:
+    image: hyness/spring-cloud-config-server:latest
+    volumes:
+      - ./application.yml:/config/application.yml
+    ports:
+      - 8888:8888
