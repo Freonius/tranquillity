@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.10"
       - name: Run linter, tests, and build
-        run: bash ./setup.sh py -l -t -i -b -m shell utils exceptions settings
+        run: bash ./setup.sh py -t -i -b -m shell utils exceptions settings
       - name: Upload coverage
         uses: codecov/codecov-action@v2
         with:
