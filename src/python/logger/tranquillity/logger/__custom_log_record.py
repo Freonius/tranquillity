@@ -34,7 +34,7 @@ def _lr2d(log_rec: CustomLogRecord) -> Dict[str, Any]:
             'exception': log_rec.exception.exception
         }
     return {
-        'time': log_rec.time.strftime('%Y-%m-%d %H:%M:%S.%f'),
+        'time': log_rec.time.isoformat(),
         'message': log_rec.message,
         'filename': log_rec.filename,
         'line': log_rec.line,
@@ -48,12 +48,12 @@ def _lr2d(log_rec: CustomLogRecord) -> Dict[str, Any]:
 def _d2lr(hits: Dict[str, Any]) -> CustomLogRecord:
     for _x in ('time', 'message', 'filename', 'line', 'level', 'module', 'host', 'exception'):
         if _x not in hits.keys():
-            raise ValueError
+            raise ValueError    # pragma: no cover
     _ex: Union[CustomLogRecordException, None] = None
     if hits['exception'] is not None and isinstance(hits['exception'], dict):
         for _y in ('name', 'filename', 'line', 'exception'):
             if _y not in hits['exception'].keys():
-                raise TypeError
+                raise TypeError  # pragma: no cover
         _ex = CustomLogRecordException(**hits['exception'])
     hits.pop('exception')
     hits['exception'] = _ex

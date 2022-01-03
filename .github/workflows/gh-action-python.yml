@@ -10,7 +10,9 @@ jobs:
       - name: Check docker and docker-compose
         run: docker info && docker-compose version
       - name: Pull necessary docker images (for testing)
-        run: docker pull hyness/spring-cloud-config-server:latest
+        run: |
+          docker pull hyness/spring-cloud-config-server:latest && \
+          docker pull elasticsearch:7.13.2
       - name: Setup Python
         uses: actions/setup-python@v2
         with:

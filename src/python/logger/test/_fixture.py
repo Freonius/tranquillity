@@ -19,7 +19,7 @@ conn:
 log:
   rotation:
     enabled: true
-    daily: false
+    daily: true
     size: 100k
     keep: 10
   loggers:
@@ -36,7 +36,7 @@ log:
       enabled: true
     sql:
       type: postgres
-      enabled: false
+      enabled: true
       db: tq
       table: logs
       schema: tranquillity
