@@ -1,17 +1,22 @@
 from sys import stdout
 from logging import DEBUG, INFO, ERROR, WARNING, Logger, StreamHandler, Formatter, FileHandler
-from typing import Union
-from re import compile, Pattern, Match, finditer
+from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+# pylint: disable=redefined-builtin
+from re import compile, Pattern, Match, finditer, match
+# pylint: enable=redefined-builtin
 from typing import Union, Callable, Set
+import asyncio
 from pickle import dumps
+from json import dumps as jdumps
 from pika import BlockingConnection, ConnectionParameters, PlainCredentials
 from pika.adapters.blocking_connection import BlockingChannel
-from .__interfaces import ILogHandler
+from elasticsearch import AsyncElasticsearch
 from tranquillity.shell import Shell
 from tranquillity.settings import ISettings, Yaml
-from tranquillity.enums import LogType
 from tranquillity.exceptions import ConnectionException
-from .__custom_log_record import CustomLogRecord
+from ._enum import LogType
+from .__interfaces import ILogHandler
+from .__custom_log_record import CustomLogRecord, _lr2d
 
 # filterwarnings('ignore')
 
@@ -61,21 +66,24 @@ class CustomLogger(Logger):
 
         try:
             frmt = settings.get('log.format')
-        except Exception:
+        except KeyError:
             pass
 
         if frmt is None:
-            self.frmt = '[{}@{}'.format(
-                module_name, Shell.get_docker_id()) + ':%(asctime)s:%(module)s:%(lineno)s:%(levelname)s] %(message)s'
+            self.frmt = f'[{module_name}@{Shell.get_docker_id()}' + \
+                ':%(asctime)s:%(module)s:%(lineno)s:%(levelname)s] %(message)s'
         else:
             self.frmt = frmt
-
         self.level = level
         self.name_log_file = name_log_file
         self.module_name = module_name
         self.output = {DEBUG: '', INFO: '', ERROR: '', WARNING: ''}
         self.formatter = Formatter(self.frmt)
         super().__init__(name=name_log_file, level=level)
+        self._add_custom_handlers(settings)
+        self._add_rotation_handler(settings)
+
+    def _add_custom_handlers(self, settings: ISettings) -> None:
         try:
             if settings.get_bool('log.loggers.file.enabled'):
                 self.add_custom_handler(LogType.FILE, self._calc_level('file'))
@@ -105,7 +113,54 @@ class CustomLogger(Logger):
         except KeyError:
             pass
 
-    def add_custom_handler(self, logtype: LogType, level: Union[int, None] = None, override_name: Union[str, None] = None):
+    def _add_rotation_handler(self, settings: ISettings) -> None:
+        _rotation_enabled: bool = False
+        try:
+            if settings.get_bool('log.rotation.enabled'):
+                _rotation_enabled = True
+        except KeyError:
+            _rotation_enabled = False
+        _daily: bool = False
+        try:
+            _daily = settings.get_bool('log.rotation.daily')
+        except KeyError:
+            _daily = False
+        _keep: int = 10
+        try:
+            _keep = settings.get_int('log.rotation.keep')
+        except KeyError:
+            _keep = 10
+        try:
+            _size: Union[str, None] = settings.get('log.rotation.size')
+            _bytes: int = 0
+            if _size is not None:
+                _size = _size.strip().upper()
+                _m_size: Union[Match, None] = match(
+                    r'^(\d+)(KB?|MB?)?$', _size)
+                if _m_size is not None:
+                    _digits: int = int(_m_size.group(1))
+                    _size_part: str = _m_size.group(2)
+                    if _size_part in {'K', 'KB'}:
+                        _digits *= 1024
+                    elif _size_part in {'M', 'MB'}:
+                        _digits *= 1024
+                        _digits *= 1024
+                    _bytes = _digits
+            if _rotation_enabled and _bytes > 0:
+                self.addHandler(
+                    RotatingFileHandler(self.name_log_file, backupCount=_keep))
+        except KeyError:
+            pass
+        if _rotation_enabled and _daily:
+            self.addHandler(TimedRotatingFileHandler(
+                self.name_log_file, when='d'))
+
+    def add_custom_handler(self,
+                           logtype: LogType,
+                           level: Union[int, None] = None,
+                           override_name: Union[str, None] = None):
+        console_logger: Union[StreamHandler, ElasticLogHandler,
+                              SqlLogHandler, FileHandler, RabbitLogHandler]
         if logtype is LogType.STREAM:
             console_logger = StreamHandler(stdout)
         elif logtype is LogType.ELASTIC:
@@ -133,20 +188,23 @@ class CustomLogger(Logger):
 
 
 class ElasticLogHandler(ILogHandler):
-    _client = ''
+    _client: AsyncElasticsearch
 
     def __init__(self, settings: ISettings):
         super().__init__(settings)
+        self._client = AsyncElasticsearch(
+            self._settings.get('conn.elasticsearch.host', 'es') +
+            ':' + str(self._settings.get('conn.elasticsearch.port', '9200')))
 
     def _custom_emit(self, record: CustomLogRecord) -> None:
-        pass
+        async def _asemit(record: CustomLogRecord, index: str, client: AsyncElasticsearch):
+            await client.index(index, body=jdumps(_lr2d(record)))
 
-
-# class mongo_log_handler(ILogHandler):
-#     def _custom_emit(self, record: CustomLogRecord) -> None:
-#         m = Mongo(self._settings)
-#         m.add(record)
-#         m.close()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(_asemit(record,
+                                        self._settings.get(
+                                            'log.loggers.elasticsearch.index', 'logs'),
+                                        self._client))
 
 
 class RabbitLogHandler(ILogHandler):
@@ -186,7 +244,10 @@ class RabbitLogHandler(ILogHandler):
         except KeyError:
             pass
         _credentials: PlainCredentials
-        if _username is None or _username.strip() == '' or _password is None or _password.strip() == '':
+        if _username is None or \
+            _username.strip() == '' or \
+            _password is None or \
+                _password.strip() == '':
             _credentials = ConnectionParameters.DEFAULT_CREDENTIALS
         else:
             _credentials = PlainCredentials(_username, _password)
@@ -198,7 +259,7 @@ class RabbitLogHandler(ILogHandler):
     def _custom_emit(self, record: CustomLogRecord) -> None:
         self._channel.queue_declare(queue=self._queue)
         self._channel.basic_publish(
-            exchange='', routing_key=self._queue, body=dumps(dict(record)))
+            exchange='', routing_key=self._queue, body=dumps(_lr2d(record)))
 
     @staticmethod
     def rabbit_log_listener():

@@ -1,6 +1,7 @@
 from datetime import datetime
 from dataclasses import dataclass
-from typing import Union
+from typing import Dict, Union, Any
+# pylint: disable=too-many-instance-attributes
 
 
 @dataclass
@@ -21,3 +22,24 @@ class CustomLogRecord:
     module: str
     host: str
     exception: Union[CustomLogRecordException, None] = None
+
+
+def _lr2d(log_rec: CustomLogRecord) -> Dict[str, Any]:
+    _ex: Union[None, Dict[str, Any]] = None
+    if log_rec.exception is not None:
+        _ex = {
+            'name': log_rec.exception.name,
+            'filename': log_rec.exception.filename,
+            'line': log_rec.exception.line,
+            'exception': log_rec.exception.exception
+        }
+    return {
+        'time': log_rec.time.strftime('%Y-%m-%d %H:%M:%S.%f'),
+        'message': log_rec.message,
+        'filename': log_rec.filename,
+        'line': log_rec.line,
+        'level': log_rec.level,
+        'module': log_rec.module,
+        'host': log_rec.host,
+        'exception': _ex
+    }

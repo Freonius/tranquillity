@@ -14,8 +14,8 @@ conn:
     password: example
     db: example
   elasticsearch:
-    host: es
-    port: 1234
+    host: localhost
+    port: 9200
     user: user
     password: password
     protocol: http
@@ -48,10 +48,11 @@ log:
     file:
       enabled: true
       level: debug
-      file: /app/logs/{{app.name}}.log
+      file: ./logs/{{app.name}}.log
     elasticsearch:
       level: info
-      enabled: false
+      index: logs
+      enabled: true
     sql:
       type: postgres
       enabled: false

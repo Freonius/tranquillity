@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from sys import stdout
 from logging import LogRecord, StreamHandler
 from typing import List, Union
-from datetime import datetime
 from traceback import FrameSummary, StackSummary, extract_tb
 from tranquillity.settings import ISettings
 from tranquillity.shell import Shell
@@ -31,8 +30,7 @@ class ILogHandler(StreamHandler, ABC):
                 # Is error, not exception
             else:
                 stack_summary: StackSummary = extract_tb(record.exc_info[2])
-                frame_summaries: List[FrameSummary] = [
-                    frame_summary for frame_summary in stack_summary]
+                frame_summaries: List[FrameSummary] = list(stack_summary)
                 if len(frame_summaries) > 0:
                     frm_sum: FrameSummary = frame_summaries[-1]
 
