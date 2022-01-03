@@ -1,11 +1,15 @@
 from sys import stdout
 from logging import DEBUG, INFO, ERROR, WARNING, Logger, StreamHandler, Formatter, FileHandler
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+from pathlib import Path
+from os.path import abspath, isdir
+from os import makedirs
 # pylint: disable=redefined-builtin
 from re import compile, Pattern, Match, finditer, match
 # pylint: enable=redefined-builtin
 from typing import Union, Callable, Set
 from pickle import dumps
+from warnings import filterwarnings
 from pika import BlockingConnection, ConnectionParameters, PlainCredentials
 from pika.adapters.blocking_connection import BlockingChannel
 from tranquillity.shell import Shell
@@ -16,7 +20,7 @@ from .__interfaces import ILogHandler
 from .__custom_log_record import CustomLogRecord, _lr2d
 from ._elasticlog import ElasticLogHandler
 
-# filterwarnings('ignore')
+filterwarnings('ignore')
 
 
 class CustomLogger(Logger):
@@ -74,6 +78,9 @@ class CustomLogger(Logger):
             self.frmt = frmt
         self.level = level
         self.name_log_file = name_log_file
+        _log_fld: str = str(Path(abspath(self.name_log_file)).parent)
+        if not isdir(_log_fld):
+            makedirs(_log_fld)
         self.module_name = module_name
         self.output = {DEBUG: '', INFO: '', ERROR: '', WARNING: ''}
         self.formatter = Formatter(self.frmt)

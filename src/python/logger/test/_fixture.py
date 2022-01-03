@@ -29,7 +29,7 @@ log:
     file:
       enabled: true
       level: debug
-      file: ./logs/{{app.name}}.log
+      file: ./logs/\u007b\u007bapp.name\u007d\u007d.log
     elasticsearch:
       level: info
       index: logs
