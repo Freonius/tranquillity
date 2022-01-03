@@ -1,5 +1,4 @@
 from .__interface import ISettings
-from ._api import Api
 from ._env import Env
 from ._ini import Ini
 from ._json import Json

@@ -33,11 +33,3 @@ class SettingsType(Enum):
     BSON = auto()
     PICKLE = auto()
     SPRING = auto()
-
-
-class LogType(Enum):
-    FILE = auto()
-    STREAM = auto()
-    SQL = auto()
-    ELASTIC = auto()
-    RABBITMQ = auto()
