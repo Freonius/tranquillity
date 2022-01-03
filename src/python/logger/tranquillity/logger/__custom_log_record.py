@@ -43,3 +43,18 @@ def _lr2d(log_rec: CustomLogRecord) -> Dict[str, Any]:
         'host': log_rec.host,
         'exception': _ex
     }
+
+
+def _d2lr(hits: Dict[str, Any]) -> CustomLogRecord:
+    for _x in {'time', 'message', 'filename', 'line', 'level', 'module', 'host', 'exception'}:
+        if _x not in hits.keys():
+            raise ValueError
+    _ex: Union[CustomLogRecordException, None] = None
+    if hits['exception'] is not None and isinstance(hits['exception'], dict):
+        for _y in {'name', 'filename', 'line', 'exception'}:
+            if _y not in hits['exception'].keys():
+                raise TypeError
+        _ex = CustomLogRecordException(**hits['exception'])
+    hits.pop('exception')
+    hits['exception'] = _ex
+    return CustomLogRecord(**hits)
