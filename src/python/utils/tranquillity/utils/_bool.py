@@ -2,6 +2,17 @@ from typing import Union
 
 
 def to_bool(val: Union[str, None, int, float]) -> bool:
+    """Convert a value to a boolean.
+
+    Args:
+        val (Union[str, None, int, float]): Value to convert to bool.
+
+    Raises:
+        TypeError
+
+    Returns:
+        bool: Converted bool value
+    """
     if isinstance(val, bool):
         return val
     if isinstance(val, (int, float)):

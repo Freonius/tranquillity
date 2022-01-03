@@ -5,6 +5,14 @@ from collections.abc import Iterable
 
 
 def validate_input(obj: Callable, **kwargs) -> None:
+    """AI is creating summary for validate_input
+
+    Args:
+        obj (Callable): [description]
+
+    Raises:
+        TypeError: [description]
+    """
     hints: Dict[str, Any] = get_type_hints(obj)
     for attr_name, attr_type in hints.items():
         if attr_name == 'return':
@@ -18,6 +26,17 @@ def validate_input(obj: Callable, **kwargs) -> None:
 
 
 def type_check(decorator: Callable) -> Callable:
+    """AI is creating summary for type_check
+
+    Args:
+        decorator (Callable): [description]
+
+    Raises:
+        TypeError: [description]
+
+    Returns:
+        Callable: [description]
+    """
     @wraps(decorator)
     def wrapped_decorator(*args, **kwargs):
         fs_args: FullArgSpec = getfullargspec(decorator)

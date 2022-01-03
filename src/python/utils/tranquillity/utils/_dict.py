@@ -10,6 +10,19 @@ def flatten_dict(
         data: Dict[str, Any],
         key_prefix: Union[str, None] = None,
         key_map: Union[Callable[[str], str], None] = str.lower) -> Dict[str, str]:
+    """AI is creating summary for flatten_dict
+
+    Args:
+        data (Dict[str, Any]): [description]
+        key_prefix (Union[str, None], optional): [description]. Defaults to None.
+        key_map (Union[Callable[[str], str], None], optional): [description]. Defaults to str.lower.
+
+    Raises:
+        TypeError
+
+    Returns:
+        Dict[str, str]: [description]
+    """
     # pylint: disable=too-many-branches
     if not isinstance(data, dict):
         if __debug__:   # pragma: no cover
@@ -63,6 +76,18 @@ def flatten_dict(
 
 
 def unflatten_dict(data: Dict[str, str]) -> Dict:
+    """AI is creating summary for unflatten_dict
+
+    Args:
+        data (Dict[str, str]): [description]
+
+    Raises:
+        TypeError: [description]
+        TypeError: [description]
+
+    Returns:
+        Dict: [description]
+    """
     if not isinstance(data, dict):
         raise TypeError
     _in_data: Dict[str, str] = data.copy()

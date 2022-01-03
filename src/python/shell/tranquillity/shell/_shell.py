@@ -19,6 +19,17 @@ class Shell:
 
     @staticmethod
     def execute(cmd: str, params: Union[None, Iterable[Any]] = None) -> ShellReturn:
+        """Execute a shell command.
+
+        Args:
+            cmd (str): Command to execute.
+            params (Union[None, Iterable[Any]], optional): Additional arguments can 
+                                                           be added here. Defaults to None.
+
+        Returns:
+            ShellReturn: It will have the output in str format, the error output, and the
+                         return code.
+        """
         if params is not None:
             cmd = cmd.strip() + ' ' + join(list(map(quote, list(map(str, params)))))
         _proc: Popen[bytes]
@@ -44,6 +55,11 @@ class Shell:
 
     @staticmethod
     def get_docker_id() -> str:
+        """Get the first 12 characters of a docker id, or the ip address of the host.
+
+        Returns:
+            str: docker id or ip address.
+        """
         host_ip: str = gethostbyname(gethostname())
         cmd: str = 'echo $(basename $(cat /proc/1/cpuset))'
         try:
