@@ -5,6 +5,18 @@ from typing import Union
 
 
 def to_time(t: Union[str, time, datetime]) -> time:
+    """Convert a value to time.
+
+    Args:
+        t (Union[str, time, datetime]): Value to convert
+
+    Raises:
+        ValueError
+        TypeError
+
+    Returns:
+        time
+    """
     if isinstance(t, time):
         return t
     if isinstance(t, str):
@@ -20,6 +32,17 @@ def to_time(t: Union[str, time, datetime]) -> time:
 
 
 def to_date(s: Union[str, date, datetime]) -> date:
+    """Convert a value to a date.
+
+    Args:
+        s (Union[str, date, datetime]): Value to convert
+
+    Raises:
+        TypeError
+
+    Returns:
+        date
+    """
     d: date
     if isinstance(s, datetime):
         d = s.date()

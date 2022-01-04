@@ -1,24 +1,58 @@
+# -*- coding: utf-8 -*-
+# pylint: enable=missing-function-docstring,missing-module-docstring,missing-class-docstring
+"""Module for shell utilities.
+
+"""
 from typing import Any, Iterable, Union
 from dataclasses import dataclass
 from socket import gethostname, gethostbyname
 from subprocess import Popen, PIPE, STDOUT
-from binascii import unhexlify
+from binascii import unhexlify, Error
 from shlex import quote, join
 
 
 @dataclass
 class ShellReturn:
+    """ Dataclass that holds all output
+    from a shell command.
+    """
     exit_code: int
     return_string: str
     stderr: str
 
 
 class Shell:
+    """ Class that holds static methods for shell
+    utilities.
+    """
+
     def __init__(self) -> None:
         pass
 
     @staticmethod
     def execute(cmd: str, params: Union[None, Iterable[Any]] = None) -> ShellReturn:
+        """Execute a shell command.
+
+        Example:
+
+        ```python
+        from tranquillity.shell import Shell
+
+        out = Shell.execute('echo', ['hi'])
+        # Can also be Shell.execute('echo hi')
+        print(out.return_string)    # hi
+        print(out.exit_code)        # 0 (hopefully)
+        ```
+
+        Args:
+            cmd (str): Command to execute.
+            params (Union[None, Iterable[Any]], optional): Additional arguments can
+                                                           be added here. Defaults to None.
+
+        Returns:
+            ShellReturn: It will have the output in str format, the error output, and the
+                         return code.
+        """
         if params is not None:
             cmd = cmd.strip() + ' ' + join(list(map(quote, list(map(str, params)))))
         _proc: Popen[bytes]
@@ -44,15 +78,18 @@ class Shell:
 
     @staticmethod
     def get_docker_id() -> str:
-        host_ip: str = gethostbyname(gethostname())
-        cmd: str = 'echo $(basename $(cat /proc/1/cpuset))'
+        """Get the first 12 characters of a docker id, or the ip address of the host.
+
+        Returns:
+            str: docker id or ip address.
+        """
         try:
             _proc: Popen
-            with Popen(cmd, stdout=PIPE, stderr=STDOUT, shell=True) as _proc:
-                container_id: str = _proc.communicate()[
+            with Popen('echo $(basename $(cat /proc/1/cpuset))',
+                       stdout=PIPE, stderr=STDOUT, shell=True) as _proc:
+                _container_id: str = _proc.communicate()[
                     0].decode('utf-8').strip()[:12]
-                unhexlify(container_id)
-                return container_id  # pragma: no cover
-        # pylint: disable=broad-except
-        except Exception:
-            return host_ip
+                unhexlify(_container_id)
+                return _container_id  # pragma: no cover
+        except Error:
+            return gethostbyname(gethostname())

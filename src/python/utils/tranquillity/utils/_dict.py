@@ -1,7 +1,22 @@
+"""Module for flattening and unflattening a dictionary.
+
+```python
+d {
+    'key': {
+        'subkey': {
+            'subsub': 1
+        }
+    }
+}
+flat = flatten_dict(d)
+flat['key.subkey.subsub'] == 1
+norm = unflatten_dict(flat)
+norm['key']['subkey']['subsub'] == 1
+```
+
+"""
 from typing import Any, Callable, Dict, Union
-# pylint: disable=redefined-builtin
-from re import compile, Pattern, match
-# pylint: enable=redefined-builtin
+from re import compile as re_compile, Pattern, match
 from ast import literal_eval
 from unflatten import unflatten
 
@@ -10,6 +25,20 @@ def flatten_dict(
         data: Dict[str, Any],
         key_prefix: Union[str, None] = None,
         key_map: Union[Callable[[str], str], None] = str.lower) -> Dict[str, str]:
+    """Flatten a dictionary to be one dimentional.
+
+    Args:
+        data (Dict[str, Any]): The dictionary to flatten.
+        key_prefix (Union[str, None], optional): Key prefix to add to each key. Defaults to None.
+        key_map (Union[Callable[[str], str], None], optional): A function to transform the key
+                                                            strings. Defaults to str.lower.
+
+    Raises:
+        TypeError
+
+    Returns:
+        Dict[str, str]: Flat dictionary
+    """
     # pylint: disable=too-many-branches
     if not isinstance(data, dict):
         if __debug__:   # pragma: no cover
@@ -35,7 +64,7 @@ def flatten_dict(
                 _prefix: str = ''
                 if key_prefix is not None:
                     _prefix = key_prefix + '.'
-                out[(_prefix + key).lower()] = str({})
+                out[_prefix + key] = str({})
             sub_prefix: str = ''
             if key_prefix is not None:
                 sub_prefix = key_prefix + '.'
@@ -53,7 +82,7 @@ def flatten_dict(
             prefix: str = ''
             if key_prefix is not None:
                 prefix = key_prefix + '.'
-            out[(prefix + key).lower()] = str(data[key])
+            out[prefix + key] = str(data[key])
             del prefix
     del key
     if key_map is not None:
@@ -63,10 +92,21 @@ def flatten_dict(
 
 
 def unflatten_dict(data: Dict[str, str]) -> Dict:
+    """Unflatten a flattened dictionary.
+
+    Args:
+        data (Dict[str, str]): The flat dictionary
+
+    Raises:
+        TypeError
+
+    Returns:
+        Dict: The dictionary like it was.
+    """
     if not isinstance(data, dict):
         raise TypeError
     _in_data: Dict[str, str] = data.copy()
-    _is_evaluable: Pattern = compile(
+    _is_evaluable: Pattern = re_compile(
         r'^\s*(\[.*\]|\d+|\d+\.\d*|\d*\.\d+|True|False|None|\{\})\s*$')
     for _key in _in_data.keys():
         if match(_is_evaluable, _in_data[_key]) is not None:
