@@ -9,7 +9,7 @@ fld: str = str(Path(abspath(__file__)).parent) + sep
 
 load_dotenv(fld + '..' + sep + '..' + sep + '..' + sep + '.env')
 
-readme_path = fld + '..' + sep + '..' + sep + '..' + sep + 'readme.md'
+readme_path = fld + '..' + sep + '..' + sep + '..' + sep + 'README.md'
 
 ld = ''
 if isfile(readme_path):

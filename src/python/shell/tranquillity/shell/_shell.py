@@ -1,19 +1,31 @@
+# -*- coding: utf-8 -*-
+# pylint: enable=missing-function-docstring,missing-module-docstring,missing-class-docstring
+"""Module for shell utilities.
+
+"""
 from typing import Any, Iterable, Union
 from dataclasses import dataclass
 from socket import gethostname, gethostbyname
 from subprocess import Popen, PIPE, STDOUT
-from binascii import unhexlify
+from binascii import unhexlify, Error
 from shlex import quote, join
 
 
 @dataclass
 class ShellReturn:
+    """ Dataclass that holds all output
+    from a shell command.
+    """
     exit_code: int
     return_string: str
     stderr: str
 
 
 class Shell:
+    """ Class that holds static methods for shell
+    utilities.
+    """
+
     def __init__(self) -> None:
         pass
 
@@ -23,7 +35,7 @@ class Shell:
 
         Args:
             cmd (str): Command to execute.
-            params (Union[None, Iterable[Any]], optional): Additional arguments can 
+            params (Union[None, Iterable[Any]], optional): Additional arguments can
                                                            be added here. Defaults to None.
 
         Returns:
@@ -60,15 +72,14 @@ class Shell:
         Returns:
             str: docker id or ip address.
         """
-        host_ip: str = gethostbyname(gethostname())
-        cmd: str = 'echo $(basename $(cat /proc/1/cpuset))'
+        _host_ip: str = gethostbyname(gethostname())
+        _cmd: str = 'echo $(basename $(cat /proc/1/cpuset))'
         try:
             _proc: Popen
-            with Popen(cmd, stdout=PIPE, stderr=STDOUT, shell=True) as _proc:
-                container_id: str = _proc.communicate()[
+            with Popen(_cmd, stdout=PIPE, stderr=STDOUT, shell=True) as _proc:
+                _container_id: str = _proc.communicate()[
                     0].decode('utf-8').strip()[:12]
-                unhexlify(container_id)
-                return container_id  # pragma: no cover
-        # pylint: disable=broad-except
-        except Exception:
-            return host_ip
+                unhexlify(_container_id)
+                return _container_id  # pragma: no cover
+        except Error:
+            return _host_ip
