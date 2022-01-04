@@ -3,7 +3,7 @@ from ._couchdb import CouchDb
 from ._elasticsearch import Elasticsearch
 from ._mongo import Mongo
 from ._rabbit import Rabbit
-from ._db2 import Db2
+# from ._db2 import Db2
 from ._hazelcast import Hazelcast
 from ._kafka import Kafka
 from ._mqqt import Mqqt

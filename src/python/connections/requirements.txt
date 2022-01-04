@@ -5,3 +5,5 @@ pymongo==3.11.4
 pika==1.2.0
 hazelcast-python-client==4.2
 kafka-python==2.0.2
+ibm-db==3.1.0
+ibm-db-sa==0.3.7
