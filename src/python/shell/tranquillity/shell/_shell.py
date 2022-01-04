@@ -33,6 +33,17 @@ class Shell:
     def execute(cmd: str, params: Union[None, Iterable[Any]] = None) -> ShellReturn:
         """Execute a shell command.
 
+        Example:
+
+        ```python
+        from tranquillity.shell import Shell
+
+        out = Shell.execute('echo', ['hi'])
+        # Can also be Shell.execute('echo hi')
+        print(out.return_string)    # hi
+        print(out.exit_code)        # 0 (hopefully)
+        ```
+
         Args:
             cmd (str): Command to execute.
             params (Union[None, Iterable[Any]], optional): Additional arguments can
@@ -72,14 +83,13 @@ class Shell:
         Returns:
             str: docker id or ip address.
         """
-        _host_ip: str = gethostbyname(gethostname())
-        _cmd: str = 'echo $(basename $(cat /proc/1/cpuset))'
         try:
             _proc: Popen
-            with Popen(_cmd, stdout=PIPE, stderr=STDOUT, shell=True) as _proc:
+            with Popen('echo $(basename $(cat /proc/1/cpuset))',
+                       stdout=PIPE, stderr=STDOUT, shell=True) as _proc:
                 _container_id: str = _proc.communicate()[
                     0].decode('utf-8').strip()[:12]
                 unhexlify(_container_id)
                 return _container_id  # pragma: no cover
         except Error:
-            return _host_ip
+            return gethostbyname(gethostname())

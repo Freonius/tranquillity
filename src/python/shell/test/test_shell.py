@@ -1,9 +1,3 @@
-from sys import path
-from os.path import realpath, dirname, sep
-path.append(realpath(dirname(__file__) +
-            f'{sep}..'))
-
-
 def test_shell():
     from ..tranquillity.shell import Shell, ShellReturn
     ret = Shell.execute('echo ditto')

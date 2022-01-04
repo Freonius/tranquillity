@@ -5,13 +5,13 @@ from collections.abc import Iterable
 
 
 def validate_input(obj: Callable, **kwargs) -> None:
-    """AI is creating summary for validate_input
+    """Validates the arguments passed to a function.
 
     Args:
-        obj (Callable): [description]
+        obj (Callable): The function to check
 
     Raises:
-        TypeError: [description]
+        TypeError
     """
     hints: Dict[str, Any] = get_type_hints(obj)
     for attr_name, attr_type in hints.items():
@@ -26,16 +26,17 @@ def validate_input(obj: Callable, **kwargs) -> None:
 
 
 def type_check(decorator: Callable) -> Callable:
-    """AI is creating summary for type_check
+    """Checks the args' types passed to a function decorated with
+    this decorator.
 
     Args:
-        decorator (Callable): [description]
+        decorator (Callable)
 
     Raises:
-        TypeError: [description]
+        TypeError
 
     Returns:
-        Callable: [description]
+        Callable
     """
     @wraps(decorator)
     def wrapped_decorator(*args, **kwargs):

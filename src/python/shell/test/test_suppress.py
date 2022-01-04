@@ -1,10 +1,4 @@
-from sys import path
-from os.path import realpath, dirname, sep
-path.append(realpath(dirname(__file__) +
-            f'{sep}..'))
-
-
-def test_shell():
+def test_suppress():
     import sys
     import io
     from ..tranquillity.shell import SuppressOutput

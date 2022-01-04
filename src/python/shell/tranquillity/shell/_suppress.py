@@ -11,8 +11,10 @@ class SuppressOutput:
 
     Use it with 'with'. E.g.:
 
+    ```python
     with SuppressOutput():
-        print('Invisible')
+        print('Invisible')  # Will not print
+    ```
     """
     _null_fds: List[int]
     _save_fds: Tuple[int, int]

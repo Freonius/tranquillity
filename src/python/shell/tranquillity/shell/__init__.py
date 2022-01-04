@@ -6,6 +6,8 @@ Imports:
     Shell
     ShellReturn
     SuppressOutput
+    Capture
 """
 from ._shell import Shell, ShellReturn
 from ._suppress import SuppressOutput
+from ._capture import Capture
