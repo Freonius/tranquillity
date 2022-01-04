@@ -34,3 +34,6 @@ class Capture(list):
 
     def __repr__(self) -> str:
         return ('\n'.join(self._stringio.getvalue().splitlines())).strip()
+
+    def __eq__(self, __o: object) -> bool:
+        return str(self).strip() == str(__o).strip()
