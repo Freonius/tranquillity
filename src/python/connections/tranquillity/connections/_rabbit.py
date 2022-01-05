@@ -88,3 +88,11 @@ class Rabbit(IConnection):
 
     def _is_connected(self) -> bool:
         return bool(self._client.is_open)
+
+    @property
+    def client(self) -> BlockingConnection:
+        return self._client
+
+    @property
+    def channel(self) -> BlockingChannel:
+        return self._channel

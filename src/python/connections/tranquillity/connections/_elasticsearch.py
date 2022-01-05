@@ -3,8 +3,8 @@ Module for Elasticsearch operations
 '''
 from typing import Union
 from elasticsearch.client import Elasticsearch as ES
-from .__interface import IConnection
 from tranquillity.exceptions import ConnectionException
+from .__interface import IConnection
 
 
 class Elasticsearch(IConnection):
@@ -58,3 +58,8 @@ class Elasticsearch(IConnection):
         if self._client is None:
             raise ConnectionException('Client is None')
         return self._client
+
+
+if __name__ == '__main__':
+    with Elasticsearch() as e:
+        print(e.is_connected)

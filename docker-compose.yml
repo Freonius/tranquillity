@@ -3,25 +3,29 @@ version: '3.8'
 services:
   redis:
     image: redis:6.2-alpine
-    pull_policy: missing
     volumes:
       - ./data/redis:/usr/local/etc/redis
   elasticsearch:
     image: elasticsearch:7.13.2
-    pull_policy: missing
     environment:
-      - xpack.security.enabled=false
+      - xpack.security.enabled=true
       - node.name=vibhuvi-node
       - discovery.type=single-node
       - cluster.name=vibhuvi-es-data-cluster
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+      - ELASTIC_PASSWORD=password
     ports:
       - 9200:9200
       - 9300:9300
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - './data/elastic:/usr/share/elasticsearch/data'
   postgres:
     image: postgres:alpine3.15
-    pull_policy: missing
     environment:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=user
@@ -30,7 +34,6 @@ services:
       - ./data/postgres:/var/lib/postgresql/data
   mysql:
     image: mysql:8.0.27
-    pull_policy: missing
     volumes:
       - ./data/mysql:/var/lib/mysql
     environment:
@@ -42,7 +45,6 @@ services:
       - 3306:3306
   db2:
     image: ibmcom/db2:11.5.7.0
-    pull_policy: missing
     environment:
       - LICENSE=accept
       - DB2INST1_PASSWORD=password
@@ -51,7 +53,6 @@ services:
       - ./data/db2::/database
   mssql:
     image: mcr.microsoft.com/mssql/server:2019-CU14-ubuntu-20.04
-    pull_policy: missing
     environment:
       - "ACCEPT_EULA=Y" 
       - "SA_PASSWORD=password"
@@ -59,7 +60,6 @@ services:
       - 1433:1433 
   couchdb:
     image: couchdb:3.2.0
-    pull_policy: missing
     volumes:
      - ./data/couchdb:/opt/couchdb/data
     environment:
@@ -67,15 +67,12 @@ services:
       - COUCHDB_PASSWORD=password
   rabbitmq:
     image: rabbitmq:3.8-alpine
-    pull_policy: missing
   spring-config:
     image: hyness/spring-cloud-config-server:jre11
-    pull_policy: missing
     ports:
       - 8888:8888
   hazelcast:
     image: hazelcast/hazelcast:5.1-SNAPSHOT-slim
-    pull_policy: missing
     ports:
       - 5701:5701
     environment:
@@ -83,15 +80,15 @@ services:
   mongo:
     image: mongo:5.0
     restart: always
-    pull_policy: missing
     environment:
       - MONGO_INITDB_ROOT_USERNAME=user
       - MONGO_INITDB_ROOT_PASSWORD=example
     volumes:
       - ./data/mongo:/data/db
+    ports:
+      - 27017:27017
   nginx:
     image: nginx:1.21-alpine
-    pull_policy: missing
   # tranquillity:
   #   image: freonius/tranquillity:v0.1.0
   #   build:

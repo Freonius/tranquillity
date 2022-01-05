@@ -1,13 +1,13 @@
 '''
-Module for CouchDb operations
+Module for Mongo operations
 '''
 from typing import Callable, Set, Union
 from urllib.parse import quote_plus
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from pymongo.database import Database
-from .__interface import IConnection
 from tranquillity.exceptions import ConnectionException
+from .__interface import IConnection
 
 
 class Mongo(IConnection):
@@ -21,7 +21,7 @@ class Mongo(IConnection):
         _ks: Callable[[str], Set[str]] = lambda x: {
             x,
             f'mongo.{x}',
-            f'conns.mongo.{x}'
+            f'conn.mongo.{x}'
         }
         _host: Union[str, None] = self._settings.lookup(_ks('host'))
         if _host is None:
@@ -62,3 +62,33 @@ class Mongo(IConnection):
         except Exception:
             _db = None
         self._db = _db
+
+    def close(self) -> None:
+        if self._client is None:
+            return
+        if self._is_connected() is False:
+            self._client = None
+            return
+        self._client.close()
+
+    def _is_connected(self) -> bool:
+        if self._client is None:
+            return False
+        try:
+            self._client.admin.command('ismaster')
+            return True
+        except ConnectionFailure:
+            return False
+
+    @property
+    def client(self) -> MongoClient:
+        if self._client is None:
+            raise ConnectionError
+        return self._client
+
+
+if __name__ == '__main__':
+    m = Mongo()
+    with m:
+        print(m.is_connected)
+        m.client
