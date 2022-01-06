@@ -1,150 +1,24 @@
-# pylint: disable=invalid-name,missing-function-docstring,missing-class-docstring,missing-module-docstring,suppressed-message,locally-disabled
+from typing import TYPE_CHECKING
+from ._enums import QueryComparison, QueryJoin, QueryType
+from ._values import QWhereV, QWhereVR
 
-from datetime import date, datetime, time
-from typing import Any, Dict, List, Tuple, Union
-from enum import Enum, auto
-from dataclasses import dataclass
-
-# Enums
-
-
-class QueryFormatError(Exception):
-    pass
-
-
-class QueryComparison(Enum):
-    Eq = auto()         # equal
-    Gt = auto()         # greater than
-    Gte = auto()        # greater than or equal
-    Lt = auto()         # less than
-    Lte = auto()        # less than or equal
-    Ne = auto()         # not equal
-    In = auto()         # in
-    NotIn = auto()      # not in
-    Like = auto()       # like
-    NotLike = auto()    # not like
-    IsNull = auto()     # is null
-    IsNotNull = auto()  # is not null
-    Between = auto()    # between
-    Outside = auto()    # not between
-
-
-class QueryJoin(Enum):
-    And = auto()
-    Or = auto()
-    Not = auto()
-    AndNot = auto()
-    OrNot = auto()
-    Init = auto()
-    Close = auto()
-    GroupInit = auto()
-    GroupClose = auto()
-
-
-class QueryAction(Enum):
-    Create = auto()
-    Select = auto()
-    Insert = auto()
-    Update = auto()
-    Delete = auto()
-
-
-class QueryType(Enum):
-    String = auto()
-    Int = auto()
-    Float = auto()
-    Num = auto()
-    Date = auto()
-    DateTime = auto()
-    Time = auto()
-    Uuid = auto()
-    Id = auto()
-    Object = auto()
-    Bool = auto()
-    List = auto()
-    MongoId = auto()
-
-
-class QWhereV:
-    _val: Union[None, str, date, datetime, time, int, float]
-
-    def __init__(self, val: Union[None, str, date, datetime, time, int, float]) -> None:
-        self._val = val
-        pass
-
-
-class QWhereVR:
-    _val: Tuple[Union[None, str, date, datetime, time, int, float], ...]
-
-    def __init__(self, min_val, max_val) -> None:
-        self._val = (min_val, max_val)
-        pass
-
-
-@dataclass
-class WhereCondition:
-    join: QueryJoin
-    field: str
-    type: QueryType
-    comparison: QueryComparison
-    value: Union[QWhereV, QWhereVR]
-
-
-class Q_:
-    _where: List[Union[QueryJoin, str, QueryType,
-                       QWhereV, QWhereVR, QueryComparison]]
-    _action: QueryAction
-    _table: str
-    _schema: Union[str, None]
-    _fields: Union[List[str], None]
-    _data: Union[Dict[str, Any], None]
-
-    def __init__(self, action: QueryAction) -> None:
-        self._action = action
-        self._where = []
-
-    def _add_where_bit(self, bit: Union[QueryJoin, str, QueryType,
-                       QWhereV, QWhereVR, QueryComparison]) -> None:
-        self._where.append(bit)
-
-    @staticmethod
-    def Select(*fields: str, from_table: str, with_schema: Union[str, None] = None) -> 'QSelect':
-        return QSelect(Q_(QueryAction.Select))
-
-    @staticmethod
-    def Insert(data: Dict[str, Any], into_table: str, with_schema: Union[str, None] = None) -> None:
-        pass
-
-    @staticmethod
-    def Update(data: Dict[str, Any], from_table: str, with_schema: Union[str, None] = None) -> None:
-        pass
-
-    @staticmethod
-    def Delete(from_table: str, with_schema: Union[str, None] = None) -> None:
-        pass
-
-    @staticmethod
-    def Create(table: str, with_schema: Union[str, None] = None) -> None:
-        pass
+if TYPE_CHECKING:
+    from ._query import Q_
 
 
 class QSelect:
-    _parent: Q_
+    _parent: 'Q_'
 
-    def __init__(self, parent: Q_) -> None:
-        if not isinstance(parent, Q_):
-            raise QueryFormatError
+    def __init__(self, parent: 'Q_') -> None:
         self._parent = parent
 
-    @property
-    def And(self) -> 'QSelect':
+    def AndWhere(self, field: str) -> 'QWhereS':
         self._parent._add_where_bit(QueryJoin.And)
-        return self
+        return QWhereS(self, field)
 
-    @property
-    def Or(self) -> 'QSelect':
+    def OrWhere(self, field: str) -> 'QWhereS':
         self._parent._add_where_bit(QueryJoin.Or)
-        return self
+        return QWhereS(self, field)
 
     def Where(self, field: str) -> 'QWhereS':
         self._parent._add_where_bit(QueryJoin.Init)
