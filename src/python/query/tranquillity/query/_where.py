@@ -1,4 +1,5 @@
-from typing import Dict, List, Tuple, Type, Union
+from typing import Dict, List, Tuple, Type, Union, Any
+from json import dumps
 from ._enums import QueryComparison, QueryJoin, QueryType, SqlDialect
 from ._values import QWhereV, QWhereVR
 from ._utils import _fld2sql, _val2sql
@@ -191,3 +192,101 @@ def _wc2sql(wcs: List, dialect: SqlDialect, prev_data: Union[Dict[str, str], Non
             out += _tmp
         del _tmp
     return (out, params, tuple(list_params))
+
+
+def _wc2es(wcs: List, prev_data: Union[Dict[str, str], None] = None, prev_list_data: Union[List[str], None] = None) -> Tuple[str, Dict[str, str], Tuple[str, ...]]:
+    if len(wcs) == 0 and prev_data is None and prev_list_data is None:
+        return dumps({'query': {'match_all': {}}}), {}, ()
+    if len(wcs) == 1 and isinstance(wcs[0], WhereCondition):
+        pass
+    _wcs: List[WhereCondition] = []
+
+    def _unlist(_l: List, _d: List[WhereCondition]) -> None:
+        for _e in _l:
+            if isinstance(_e, WhereCondition):
+                _d.append(_e)
+            elif isinstance(_e, list):
+                _unlist(_e, _d)
+    _unlist(wcs, _wcs)
+    del _unlist
+
+    body: Dict[str, Dict[str, Any]] = {'query': {}}
+    _must: int = len(list(filter(lambda _wc: isinstance(
+        _wc, WhereCondition)
+        and _wc.join in (QueryJoin.Init, QueryJoin.And), _wcs)))
+    _should: int = len(list(filter(lambda _wc: isinstance(
+        _wc, WhereCondition)
+        and _wc.join is QueryJoin.Or, _wcs)))
+    _must_not: int = len(list(filter(lambda _wc: isinstance(
+        _wc, WhereCondition)
+        and _wc.join is QueryJoin.AndNot, _wcs)))
+    _should_not: int = len(list(filter(lambda _wc: isinstance(
+        _wc, WhereCondition)
+        and _wc.join is QueryJoin.OrNot, _wcs)))
+
+    if _must == 1:
+        body['query']['must'] = {}
+    elif _must > 1:
+        body['query']['must'] = []
+
+    del _must
+
+    if _should == 1:
+        body['query']['should'] = {}
+    elif _should > 1:
+        body['query']['should'] = []
+
+    del _should
+
+    if _must_not == 1:
+        body['query']['must_not'] = {}
+    elif _must_not > 1:
+        body['query']['must_not'] = []
+
+    del _must_not
+
+    if _should_not == 1:
+        body['query']['should_not'] = {}
+    elif _should_not > 1:
+        body['query']['should_not'] = []
+
+    del _should_not
+
+    for wc in _wcs:
+        _query: Dict[str, Any] = {}
+        if wc.comparison is QueryComparison.Eq:
+            _query['match'] = {wc.field: wc.value._val}
+        elif wc.comparison is QueryComparison.Like:
+            _query['regexp'] = {wc.field: {'value': wc.value._val}}
+        elif wc.comparison is QueryComparison.Ne:
+            _query['match'] = {wc.field: wc.value._val}
+        elif wc.comparison is QueryComparison.Gt:
+            _query['range'] = {wc.field: {'gt': wc.value._val}}
+        elif wc.comparison is QueryComparison.Gte:
+            _query['range'] = {wc.field: {'gte': wc.value._val}}
+        elif wc.comparison is QueryComparison.Lt:
+            _query['range'] = {wc.field: {'lt': wc.value._val}}
+        elif wc.comparison is QueryComparison.Lte:
+            _query['range'] = {wc.field: {'lte': wc.value._val}}
+        elif wc.comparison is QueryComparison.IsNull:
+            pass    # es has no is null?
+        elif wc.comparison is QueryComparison.IsNotNull:
+            pass    # es has not is null?
+        elif wc.comparison is QueryComparison.Between:
+            if isinstance(wc.value, QWhereVR):
+                _query['range'] = {wc.field: {
+                    'gte': wc.value._val[0], 'lte': wc.value._val[1]}}
+        elif wc.comparison is QueryComparison.Outside:
+            if isinstance(wc.value, QWhereVR):
+                _query['range'] = {wc.field: {
+                    'gte': wc.value._val[1], 'lte': wc.value._val[0]}}
+
+        # Append to body
+        if wc.join in (QueryJoin.Init, QueryJoin.And):
+            pass  # must
+        elif wc.join is QueryJoin.Or:
+            pass  # should
+        elif wc.join is QueryJoin.AndNot:
+            pass  # must not
+        elif wc.join is QueryJoin.OrNot:
+            pass  # should not

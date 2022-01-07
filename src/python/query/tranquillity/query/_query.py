@@ -41,3 +41,6 @@ class Q_:
     @staticmethod
     def Create(table: str, with_schema: Union[str, None] = None) -> None:
         pass
+
+    def __getitem__(self, key: str) -> str:
+        pass
