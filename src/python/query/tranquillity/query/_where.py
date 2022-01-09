@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Type, Union, Any
+from typing import Callable, Dict, List, Tuple, Type, Union, Any
 from json import dumps
 from ._enums import QueryComparison, QueryJoin, QueryType, SqlDialect
 from ._values import QWhereV, QWhereVR
@@ -210,19 +210,33 @@ def _wc2es(wcs: List, prev_data: Union[Dict[str, str], None] = None, prev_list_d
     _unlist(wcs, _wcs)
     del _unlist
 
+    _check_must: Callable[[WhereCondition], bool] = lambda _wc: isinstance(
+        _wc, WhereCondition) and \
+        _wc.join in (QueryJoin.Init, QueryJoin.And) and \
+        _wc.comparison is not QueryComparison.Ne
+
+    _check_should: Callable[[WhereCondition], bool] = lambda _wc: isinstance(
+        _wc, WhereCondition) and \
+        _wc.join is QueryJoin.Or and \
+        wc.comparison is not QueryComparison.Ne
+
+    _check_must_not: Callable[[WhereCondition], bool] = lambda _wc: isinstance(
+        _wc, WhereCondition) and \
+        (_wc.join is QueryJoin.AndNot or
+         (_wc.join is QueryJoin.And and
+          _wc.comparison is QueryComparison.Ne))
+
+    _check_should_not: Callable[[WhereCondition], bool] = lambda _wc: isinstance(
+        _wc, WhereCondition) and \
+        (_wc.join is QueryJoin.OrNot or
+         (_wc.join is QueryJoin.Or and
+          _wc.comparison is QueryComparison.Ne))
+
     body: Dict[str, Dict[str, Any]] = {'query': {}}
-    _must: int = len(list(filter(lambda _wc: isinstance(
-        _wc, WhereCondition)
-        and _wc.join in (QueryJoin.Init, QueryJoin.And), _wcs)))
-    _should: int = len(list(filter(lambda _wc: isinstance(
-        _wc, WhereCondition)
-        and _wc.join is QueryJoin.Or, _wcs)))
-    _must_not: int = len(list(filter(lambda _wc: isinstance(
-        _wc, WhereCondition)
-        and _wc.join is QueryJoin.AndNot, _wcs)))
-    _should_not: int = len(list(filter(lambda _wc: isinstance(
-        _wc, WhereCondition)
-        and _wc.join is QueryJoin.OrNot, _wcs)))
+    _must: int = len(list(filter(_check_must, _wcs)))
+    _should: int = len(list(filter(_check_should, _wcs)))
+    _must_not: int = len(list(filter(_check_must_not, _wcs)))
+    _should_not: int = len(list(filter(_check_should_not, _wcs)))
 
     if _must == 1:
         body['query']['must'] = {}
@@ -251,6 +265,9 @@ def _wc2es(wcs: List, prev_data: Union[Dict[str, str], None] = None, prev_list_d
         body['query']['should_not'] = []
 
     del _should_not
+
+    _add_query: Callable[[Dict[str, Any], str], Any] = lambda d, k: body['query'][k].append(
+        d) if isinstance(body['query'][k], list) else body['query'][k].update(d)
 
     for wc in _wcs:
         _query: Dict[str, Any] = {}
@@ -282,11 +299,11 @@ def _wc2es(wcs: List, prev_data: Union[Dict[str, str], None] = None, prev_list_d
                     'gte': wc.value._val[1], 'lte': wc.value._val[0]}}
 
         # Append to body
-        if wc.join in (QueryJoin.Init, QueryJoin.And):
-            pass  # must
-        elif wc.join is QueryJoin.Or:
-            pass  # should
-        elif wc.join is QueryJoin.AndNot:
-            pass  # must not
-        elif wc.join is QueryJoin.OrNot:
-            pass  # should not
+        if _check_must(wc) is True:
+            _add_query(_query, 'must')
+        elif _check_should(wc) is True:
+            _add_query(_query, 'should')
+        elif _check_must_not(wc) is True:
+            _add_query(_query, 'must_not')
+        elif _check_should_not(wc) is True:
+            _add_query(_query, 'should_not')
