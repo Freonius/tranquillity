@@ -1,0 +1,32 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+spring-config-client = ">=0.2,<1.0"
+pyyaml = ">=5.0"
+configobj = ">=5.0,<6.0"
+unflatten = ">=0.1,<0.2"
+
+[dev-packages]
+pylint = "*"
+pycodestyle = "*"
+autopep8 = "*"
+pytest = "*"
+pytest-cov = "*"
+twine = "*"
+python-dotenv = "*"
+mypy = "*"
+mypy-extensions = "*"
+types-croniter = "*"
+types-pyyaml = "*"
+types-requests = "*"
+wheel = "*"
+memory-profiler = "*"
+
+[requires]
+python_version = "3.10"
+
+[scripts]
+pv = "python -m pip freeze"

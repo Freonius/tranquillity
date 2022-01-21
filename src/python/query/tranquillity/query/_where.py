@@ -307,3 +307,5 @@ def _wc2es(wcs: List, prev_data: Union[Dict[str, str], None] = None, prev_list_d
             _add_query(_query, 'must_not')
         elif _check_should_not(wc) is True:
             _add_query(_query, 'should_not')
+
+    del _check_should_not, _check_must, _check_must_not, _check_should, _add_query

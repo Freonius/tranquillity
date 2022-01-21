@@ -39,7 +39,7 @@ class CustomLogger(Logger):
         except KeyError:            # pragma: no cover
             pass                    # pragma: no cover
         if level is DEBUG and not __debug__:
-            level = INFO
+            level = INFO    # I am going to be a nazi here
         return level
 
     def __init__(self, settings: Union[ISettings, None] = None):
@@ -138,18 +138,23 @@ class CustomLogger(Logger):
                 _size = _size.strip().upper()
                 _m_size: Union[Match, None] = match(
                     r'^(\d+)(KB?|MB?)?$', _size)
+                del _size
                 if _m_size is not None:
                     _digits: int = int(_m_size.group(1))
                     _size_part: str = _m_size.group(2)
+                    del _m_size
                     if _size_part in {'K', 'KB'}:
                         _digits *= 1024
                     elif _size_part in {'M', 'MB'}:     # pragma: no cover
                         _digits *= 1024                 # pragma: no cover
                         _digits *= 1024                 # pragma: no cover
                     _bytes = _digits
+                    del _digits, _size_part
             if _rotation_enabled and _bytes > 0:
                 self.addHandler(
-                    RotatingFileHandler(self.name_log_file, backupCount=_keep))
+                    RotatingFileHandler(self.name_log_file, backupCount=_keep,
+                                        maxBytes=_bytes))
+            del _bytes
         except KeyError:    # pragma: no cover
             pass            # pragma: no cover
         if _rotation_enabled and _daily:

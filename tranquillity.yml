@@ -59,6 +59,8 @@ log:
       db: tq
       table: logs
       schema: tranquillity
+    rabbitmq:
+      queue: tq-logs
     
 objects:
   president:

@@ -1,5 +1,6 @@
 from datetime import datetime
 from dataclasses import dataclass
+from logging import LogRecord
 from typing import Dict, Union, Any
 # pylint: disable=too-many-instance-attributes
 
