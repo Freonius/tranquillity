@@ -33,11 +33,22 @@ install:
 build:
 	@echo "# TODO"
 
-test:
-	@echo "# TODO"
+test: prepare
+	pipenv run run-test
 
-lint:
-	@echo "# TODO"
+lint: prepare
+	pipenv run run-lint
+	pipenv run prepare-mypy
+	pipenv run run-mypy
 
 publish:
 	@echo "# TODO"
+
+prepare:
+	-mkdir lint
+	-mkdir coverage
+	-mkdir logs
+	-mkdir dist
+	-mkdir build
+	-mkdir data
+	python -m pip install pipenv
