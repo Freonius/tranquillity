@@ -1,5 +1,5 @@
-from abc import ABC, abstractproperty
-from typing import Any, Tuple, Type, Union, Generic, TypeVar, get_args
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Tuple, Type, Union, Generic, TypeVar, List
 
 T = TypeVar('T')
 
@@ -12,7 +12,18 @@ class DType(ABC, Generic[T]):
     _default: Union[T, None] = None
     _json_field: Union[str, None] = None
     _value: Union[T, None] = None
+    _unique: bool = False
+    _is_dict: bool = False
+    _is_list: bool = False
     _t: Type[T] = NotImplemented
+
+    @property
+    def is_dict(self) -> bool:
+        return self._is_dict
+
+    @property
+    def is_list(self) -> bool:
+        return self._is_list
 
     @property
     def field(self) -> str:
@@ -46,6 +57,14 @@ class DType(ABC, Generic[T]):
 
     def set(self, val: T) -> None:
         self.value = val
+
+    @property
+    def is_valid(self) -> bool:
+        if self._value is None and self._nullable is False:
+            if self._default is not None and isinstance(self._default, self._t):
+                return True
+            return False
+        return True
 
     @property
     def is_id(self) -> bool:
@@ -90,6 +109,9 @@ class DType(ABC, Generic[T]):
                 pass
         self.value = value
 
+    def __delete__(self, _) -> None:
+        self._value = None
+
     def __init__(self,
                  field: Union[str, None] = None,
                  value: Union[T, None] = None,
@@ -109,3 +131,16 @@ class DType(ABC, Generic[T]):
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} {self._field}={self._value}>'
+
+    def to_dict(self) -> Union[Dict[str, Any], None]:
+        return None
+
+    def to_list(self) -> Union[List[Any], None]:
+        return None
+
+    def iter_value(self) -> Union[T, None, List[Any], Dict[str, Any]]:
+        if self._is_dict is True:
+            return self.to_dict()
+        if self._is_list is True:
+            return self.to_list()
+        return self.value

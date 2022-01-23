@@ -1,11 +1,13 @@
 from abc import ABC
-from typing import Any, Callable, Dict, List, Tuple, Union, Iterator
+from typing import Any, Callable, Dict, List, Tuple, Type, Union, Iterator
 from inspect import getmembers
 from json import loads, dumps
 from copy import deepcopy
 from .types._dtype import DType
 from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError
+from dataclasses import make_dataclass
+from types import new_class
 
 
 class DataObject(ABC):
@@ -14,10 +16,30 @@ class DataObject(ABC):
     __db__: Union[str, None] = None
     __data__: Dict[str, DType]
 
+    # def __init_subclass__(cls) -> None:
+    #     # def _init(self: 'DataObject'):
+    #     #     self._init(**locals())
+    #     annotations = {}
+    #     for dkey, dtype in cls.get_fields_tuple():
+    #         annotations.update(
+    #             {dkey: dtype._t})
+    #     # l = '**{var: val for var, val in locals().items() if var != "self"}'
+    #     # _init = eval(
+    #     #     f'lambda self, {", ".join(annotations.keys())}: self._init({l})')
+    #     # _init.__annotations__ = annotations
+    #     # cls.__init__ = _init
+    #     # cls.__annotations__ = annotations
+
+    #     return super().__init_subclass__()
+
     def __init__(self, **data) -> None:
         self.__data__ = {}
+
         for dkey, dtype in self.get_fields_tuple():
             self.__data__[dkey] = deepcopy(dtype)
+            # self.__annotations__.update(
+            #     {dkey: dtype._t})
+            # self.__init__.__annotations__.update({dkey: type(dtype._t)})
         for key, val in data.items():
             self[key] = val
         self.validate()
@@ -50,7 +72,7 @@ class DataObject(ABC):
 
     def to_json(self) -> str:
         # TODO: Use json_field
-        return dumps(dict(self))
+        return dumps(self.to_dict())
 
     @classmethod
     def from_json(cls, body: str) -> 'DataObject':
@@ -100,15 +122,18 @@ class DataObject(ABC):
             yield fld, val
 
     def to_dict(self) -> Dict[str, Any]:
-        return dict(self)
+        _out: Dict[str, Any] = {}
+        for _k, _v in self:
+            _out[_k] = _v
+        return _out
 
     def __iter__(self) -> Iterator[Tuple[str, Any]]:
         for _, fld in self.__data__.items():
-            yield fld.field, fld.value
+            yield fld.field, deepcopy(fld.iter_value())
 
     def __repr__(self) -> str:
-        _id: str = ' '.join(list([x.field + '=' + str(x.value)
-                            for x in self.get_fields() if x.is_id]))
+        _id: str = ' '.join(list([x[1].field + '=' + str(x[1])
+                            for x in self.__data__.items() if x[1].is_id]))
         _id = _id.strip()
         _sp: str = ' ' if len(_id) > 0 else ''
         return f'<{self.__class__.__name__}{_sp}{_id}>'
