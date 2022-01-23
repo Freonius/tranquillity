@@ -85,6 +85,12 @@ class DataObject(ABC):
                 return
         raise KeyError(f'Key {key} not found')
 
+    def get(self, key: str) -> Any:
+        return self[key]
+
+    def set(self, key: str, val: str) -> None:
+        self[key] = val
+
     def keys(self) -> Iterator[str]:
         for fld, _ in self:
             yield fld
