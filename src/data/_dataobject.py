@@ -2,6 +2,7 @@ from abc import ABC
 from typing import Any, Callable, Dict, List, Tuple, Union, Iterator
 from inspect import getmembers
 from json import loads, dumps
+from copy import deepcopy
 from .types._dtype import DType
 from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError
@@ -11,8 +12,12 @@ class DataObject(ABC):
     __table__: str = NotImplemented
     __schema__: Union[str, None] = None
     __db__: Union[str, None] = None
+    __data__: Dict[str, DType]
 
     def __init__(self, **data) -> None:
+        self.__data__ = {}
+        for dkey, dtype in self.get_fields_tuple():
+            self.__data__[dkey] = deepcopy(dtype)
         for key, val in data.items():
             self[key] = val
         self.validate()
@@ -44,6 +49,7 @@ class DataObject(ABC):
             return False
 
     def to_json(self) -> str:
+        # TODO: Use json_field
         return dumps(dict(self))
 
     @classmethod
@@ -52,20 +58,30 @@ class DataObject(ABC):
 
     @classmethod
     def get_fields(cls) -> Iterator[DType]:
-        for _, _fld_val in getmembers(cls):
+        for _fld_name, _fld_val in getmembers(cls):
             if isinstance(_fld_val, DType):
+                if not isinstance(_fld_val.field, str):
+                    _fld_val.field = _fld_name
                 yield _fld_val
 
+    @classmethod
+    def get_fields_tuple(cls) -> Iterator[Tuple[str, DType]]:
+        for _fld_name, _fld_val in getmembers(cls):
+            if isinstance(_fld_val, DType):
+                if not isinstance(_fld_val.field, str):
+                    _fld_val.field = _fld_name
+                yield _fld_name, _fld_val
+
     def __getitem__(self, key: str) -> Any:
-        for fld in self.get_fields():
-            if fld.field == key:
-                return fld.value
+        for _fld_name, _fld_val in self.__data__.items():
+            if key in (_fld_name, _fld_val.field, _fld_val.json_field):
+                return _fld_val.value
         raise KeyError(f'Key {key} not found')
 
     def __setitem__(self, key: str, val: Any) -> None:
-        for fld in self.get_fields():
-            if fld.field == key:
-                fld.value = val
+        for _fld_name, _fld_val in self.__data__.items():
+            if key in (_fld_name, _fld_val.field, _fld_val.json_field):
+                _fld_val.value = val
                 return
         raise KeyError(f'Key {key} not found')
 
@@ -81,11 +97,15 @@ class DataObject(ABC):
         return dict(self)
 
     def __iter__(self) -> Iterator[Tuple[str, Any]]:
-        for fld in self.get_fields():
+        for _, fld in self.__data__.items():
             yield fld.field, fld.value
 
     def __repr__(self) -> str:
-        return f'<{self.__class__.__name__} {" ".join(list([x.field + "=" + str(x.value) for x in self.get_fields() if x.is_id]))}>'
+        _id: str = ' '.join(list([x.field + '=' + str(x.value)
+                            for x in self.get_fields() if x.is_id]))
+        _id = _id.strip()
+        _sp: str = ' ' if len(_id) > 0 else ''
+        return f'<{self.__class__.__name__}{_sp}{_id}>'
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, type(self)):
