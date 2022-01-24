@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Tuple, Type, Union, Generic, TypeVar, List
+from ...exceptions import ValidationError
 
 T = TypeVar('T')
 
@@ -51,6 +52,8 @@ class DType(ABC, Generic[T]):
     def value(self, val: Union[T, None]) -> None:
         if val is None and self._nullable is False:
             raise ValueError
+        if val is not None:
+            val = self._transform_fun(val)
         if not isinstance(val, self._t) and val is not None:
             raise TypeError
         self._value = val
@@ -60,6 +63,10 @@ class DType(ABC, Generic[T]):
 
     @property
     def is_valid(self) -> bool:
+        try:
+            self._more_validation()
+        except ValidationError:
+            return False
         if self._value is None and self._nullable is False:
             if self._default is not None and isinstance(self._default, self._t):
                 return True
@@ -75,7 +82,7 @@ class DType(ABC, Generic[T]):
             if self.value == __o.value:
                 return True
             return False
-        if not isinstance(__o, type(self.value)):
+        if not isinstance(__o, self._t):
             return False
         if self.value == __o:
             return True
@@ -128,6 +135,12 @@ class DType(ABC, Generic[T]):
         self._default = default
         self._nullable = nullable
         self._json_field = json_field
+
+    def _more_validation(self) -> None:
+        pass
+
+    def _transform_fun(self, val: T) -> T:
+        return val
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} {self._field}={self._value}>'

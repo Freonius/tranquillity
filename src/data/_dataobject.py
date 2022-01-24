@@ -4,6 +4,7 @@ from inspect import getmembers
 from json import loads, dumps
 from copy import deepcopy
 from .types._dtype import DType
+# from .types._enum import Enum
 from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError
 from dataclasses import make_dataclass
@@ -84,6 +85,10 @@ class DataObject(ABC):
             if isinstance(_fld_val, DType):
                 if not isinstance(_fld_val.field, str):
                     _fld_val.field = _fld_name
+                # if isinstance(_fld_val, Enum):
+                #     print(_fld_name)
+                #     _fld_val.field = _fld_name
+                #     _fld_val.value = _fld_name
                 yield _fld_val
 
     @classmethod

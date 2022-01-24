@@ -34,6 +34,12 @@ class Array(list, Generic[_T]):
                 raise TypeError
         return super().extend(__iterable)
 
+    def uniques(self) -> Iterable[_T]:
+        return list(set(self))
+
+    def distincts(self) -> Iterable[_T]:
+        return self.uniques()
+
 
 class List(DType[Array[T]], Generic[T]):
     _is_list = True
