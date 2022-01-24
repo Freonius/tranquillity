@@ -17,6 +17,7 @@ kafka-python = "*"
 ibm-db = "*"
 ibm-db-sa = "*"
 beautifulsoup4 = "*"
+rule-engine = "*"
 
 [dev-packages]
 pylint = "*"

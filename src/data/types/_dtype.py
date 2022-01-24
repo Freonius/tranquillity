@@ -1,5 +1,7 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractclassmethod, abstractmethod
+from types import NotImplementedType
 from typing import Any, Dict, Tuple, Type, Union, Generic, TypeVar, List
+from graphene import Field
 from ...exceptions import ValidationError
 
 T = TypeVar('T')
@@ -18,6 +20,9 @@ class DType(ABC, Generic[T]):
     _is_list: bool = False
     _t: Type[T] = NotImplemented
 
+    def get_type(self) -> Type[T]:
+        return self._t
+
     @property
     def is_dict(self) -> bool:
         return self._is_dict
@@ -35,6 +40,10 @@ class DType(ABC, Generic[T]):
         self._field = val
 
     @property
+    def is_nullable(self) -> bool:
+        return self._nullable
+
+    @property
     def json_field(self) -> str:
         if self._json_field is None:
             return self._field
@@ -42,6 +51,8 @@ class DType(ABC, Generic[T]):
 
     @property
     def value(self) -> Union[T, None]:
+        if isinstance(self._value, NotImplementedType):
+            self._value = None
         if self._value is None and self._nullable is False:
             if self._default is not None:
                 return self._default
@@ -50,6 +61,8 @@ class DType(ABC, Generic[T]):
 
     @value.setter
     def value(self, val: Union[T, None]) -> None:
+        if isinstance(val, NotImplementedType):
+            val = None
         if val is None and self._nullable is False:
             raise ValueError
         if val is not None:
@@ -64,17 +77,24 @@ class DType(ABC, Generic[T]):
     @property
     def is_valid(self) -> bool:
         try:
-            self._more_validation()
+            self.validate()
+            return True
         except ValidationError:
             return False
+
+    def validate(self) -> None:
+        if isinstance(self._value, NotImplementedType):
+            raise ValidationError('value is not implemented')
+        self._more_validation()
         if self._value is None and self._nullable is False:
-            if self._default is not None and isinstance(self._default, self._t):
-                return True
-            return False
-        return True
+            if self._default is None and not isinstance(self._default, self._t):
+                raise ValidationError('value cannot be null')
 
     @property
     def is_id(self) -> bool:
+        return self._is_id
+
+    def is_primary_key(self) -> bool:
         return self._is_id
 
     def __eq__(self, __o: object) -> bool:
@@ -157,3 +177,20 @@ class DType(ABC, Generic[T]):
         if self._is_list is True:
             return self.to_list()
         return self.value
+
+    def serialize(self) -> Union[T, None, List[Any], Dict[str, Any]]:
+        return self.iter_value()
+
+    @abstractmethod
+    def _ggt(self) -> Type[Field]:
+        pass
+
+    def get_graphql_type(self) -> Field:
+        def _resolver(root, info, *args, **kwargs):
+            _fld = root.__data__[info.field_name]
+            return _fld
+
+        _out = self._ggt()(name=self.json_field,
+                           default_value=self._default, resolver=_resolver)
+
+        return _out

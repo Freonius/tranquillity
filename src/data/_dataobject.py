@@ -1,14 +1,16 @@
 from abc import ABC
-from typing import Any, Callable, Dict, List, Tuple, Type, Union, Iterator
+from typing import Any, Callable, Dict, List, Tuple, Union, Iterator, Iterable, TypeVar, Type
 from inspect import getmembers
 from json import loads, dumps
 from copy import deepcopy
+from attr import attrs
+from rule_engine import type_resolver_from_dict, Context, DataType, Rule
+from graphene import ObjectType, String, Schema, Field
 from .types._dtype import DType
-# from .types._enum import Enum
 from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError
-from dataclasses import make_dataclass
-from types import new_class
+
+T = TypeVar('T', bound='DataObject')
 
 
 class DataObject(ABC):
@@ -17,33 +19,13 @@ class DataObject(ABC):
     __db__: Union[str, None] = None
     __data__: Dict[str, DType]
 
-    # def __init_subclass__(cls) -> None:
-    #     # def _init(self: 'DataObject'):
-    #     #     self._init(**locals())
-    #     annotations = {}
-    #     for dkey, dtype in cls.get_fields_tuple():
-    #         annotations.update(
-    #             {dkey: dtype._t})
-    #     # l = '**{var: val for var, val in locals().items() if var != "self"}'
-    #     # _init = eval(
-    #     #     f'lambda self, {", ".join(annotations.keys())}: self._init({l})')
-    #     # _init.__annotations__ = annotations
-    #     # cls.__init__ = _init
-    #     # cls.__annotations__ = annotations
-
-    #     return super().__init_subclass__()
-
-    def __init__(self, **data) -> None:
+    def __init__(self: T, **data) -> None:
         self.__data__ = {}
-
         for dkey, dtype in self.get_fields_tuple():
             self.__data__[dkey] = deepcopy(dtype)
-            # self.__annotations__.update(
-            #     {dkey: dtype._t})
-            # self.__init__.__annotations__.update({dkey: type(dtype._t)})
         for key, val in data.items():
             self[key] = val
-        self.validate()
+        # self.validate()
 
     @classproperty
     def table(cls) -> str:
@@ -52,16 +34,75 @@ class DataObject(ABC):
         return cls.__schema__ + '.' + cls.__table__
 
     @classmethod
-    def filter(cls, objects: List['DataObject'], filter_fun: Callable[['DataObject'], bool]) -> List['DataObject']:
+    def graphql(cls) -> Type[ObjectType]:
+        flds = cls.get_fields_tuple()
+        return type('GQL' + cls.__class__.__name__, (ObjectType,), {
+            x[0]: x[1].get_graphql_type() for x in flds
+        })
 
-        out: List['DataObject'] = []
+    def get_graphql_type(self) -> ObjectType:
+        attr = {
+            x[0]: x[1].get_graphql_type() for x in self.__data__.items()
+        }
+
+        def _look(s, k):
+            try:
+                return s.__data__[k].value
+            except:
+                for _, f in s.__data__.items():
+                    if f.fiels == k:
+                        return f.value
+        attr['__data__'] = deepcopy(self.__data__)
+        attr['__getitem__'] = lambda s, k: _look(s, k)
+        for x, _ in self.__data__.items():
+            attr['resolve_' + x] = lambda s, *a, **k: s[x]
+        attr['resolve_filter'] = lambda s, *a, **k: 'I am a filter'
+        return type('GQL' + self.__class__.__name__, (ObjectType,), attr)
+
+    def serialize(self) -> Dict[str, Any]:
+        return self.to_dict()
+
+    @classmethod
+    def get_rule_engine_context(cls: Type[T]) -> Context:
+        _ctx: Dict[str, Any] = {}
+        for fld in cls.get_fields():
+            _t_ctx: Union[None, Any] = None
+            try:
+                _t_ctx = DataType.from_type(fld.get_type())
+            except ValueError:
+                if fld.is_dict:
+                    _t_ctx = DataType.MAPPING(
+                        DataType.STRING, DataType.UNDEFINED, fld.is_nullable)
+                else:
+                    _t_ctx = DataType.UNDEFINED
+            if fld.is_list:
+                _t_ctx = DataType.ARRAY(_t_ctx, fld.is_nullable)
+            if _t_ctx is None:
+                _t_ctx = DataType.UNDEFINED
+            _ctx[fld.field] = _t_ctx
+        return Context(type_resolver=type_resolver_from_dict(_ctx))
+
+    @classmethod
+    def filter_re_rule(cls, objects: Iterable[T], rule: str) -> List[T]:
+        out: List[T] = []
+        re_rule: Rule = Rule(rule, context=cls.get_rule_engine_context())
+        for o in objects:
+            if re_rule.matches(o.to_dict()):
+                out.append(o)
+        return out
+
+    @classmethod
+    def filter(cls: Type[T], objects: Iterable[T], filter_fun: Callable[[T], bool]) -> List[T]:
+
+        out: List[T] = []
         for obj in objects:
             if isinstance(obj, cls) and filter_fun(obj):
                 out.append(obj)
         return out
 
     def validate(self) -> None:
-        pass    # TODO
+        for _, fld in self.__data__.items():
+            fld.validate()
 
     @property
     def is_valid(self) -> bool:
@@ -72,8 +113,10 @@ class DataObject(ABC):
             return False
 
     def to_json(self) -> str:
-        # TODO: Use json_field
-        return dumps(self.to_dict())
+        out: Dict[str, Any] = {}
+        for _, fld in self.__data__.items():
+            out[fld.json_field] = fld.serialize()
+        return dumps(out, indent=None)
 
     @classmethod
     def from_json(cls, body: str) -> 'DataObject':

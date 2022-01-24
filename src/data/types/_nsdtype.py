@@ -1,4 +1,6 @@
-from typing import Generic
+from typing import Generic, Type
+from types import NotImplementedType
+from graphene import Field
 from ._dtype import DType, T, Union
 
 
@@ -8,6 +10,8 @@ class NSDType(DType[T], Generic[T]):
 
     @property
     def value(self) -> T:
+        if isinstance(self._value, NotImplementedType):
+            raise ValueError
         if self._value is None and self._nullable is False:
             if self._default is not None:
                 return self._default
@@ -18,11 +22,13 @@ class NSDType(DType[T], Generic[T]):
 
     @value.setter
     def value(self, val: T) -> None:
+        if isinstance(val, NotImplementedType):
+            raise ValueError
         if val is None and self._nullable is False:
             raise ValueError
+        val = self._transform_fun(val)
         if not isinstance(val, self._t) and val is not None:
             raise TypeError
-        val = self._transform_fun(val)
         self._value = val
 
     def __get__(self, instance, _) -> Union[T, 'NSDType']:
@@ -47,8 +53,11 @@ class NSDType(DType[T], Generic[T]):
         if field is not None:
             self._field = field
         self._is_id = is_id
-        if value is not None:
-            self.value = value
         self._required = required
         self._default = default
         self._json_field = json_field
+        if value is not None:
+            self.value = value
+
+    def _ggt(self) -> Type[Field]:
+        raise NotImplementedError

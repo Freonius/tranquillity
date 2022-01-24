@@ -1,25 +1,156 @@
-from ast import Call
-from typing import Union, Callable
-from re import Pattern
+from inspect import getmembers
+from typing import Any, Union, Callable, Type
+from re import Pattern, match, Match, compile
+from graphene import Field, NonNull, String as GqlString, Scalar
+from graphql.type.definition import GraphQLResolveInfo
 from ._dtype import DType
 from ._nsdtype import NSDType
+from ...exceptions import ValidationError
+
+
+def _more_validation(
+        val: Union[str, None],
+        ne: bool,
+        m: Union[Pattern, None],
+        min_len: Union[int, None],
+        max_len: Union[int, None]) -> None:
+    if val is None:
+        return
+    if ne is True and len(val.strip()) == 0:
+        raise ValidationError('String cannot be empty')
+    if min_len is not None and len(val.strip()) < min_len:
+        raise ValidationError(
+            f'String must be at least {min_len} characters long')
+    if max_len is not None and len(val) > max_len:
+        raise ValidationError(
+            f'String cannot be longer than {max_len} characters')
+    if m is not None and isinstance(m, Pattern):
+        _match: Union[Match, None] = match(m, val)
+        if _match is None:
+            raise ValidationError(f'String does not conform to pattern {m}')
+
+
+def _transform_val(val: str,
+                   tr: Union[Callable[[str], str], None],
+                   autostrip: bool, lower: bool, upper: bool) -> str:
+    if autostrip is True:
+        val = val.strip()
+    if lower is True:
+        val = val.lower()
+    if upper is True:
+        val = val.upper()
+    if tr is None:
+        return val
+    return tr(val)
 
 
 class Text(DType[str]):
     _t = str
     _not_empty: bool = False
-    _match: Union[Pattern, None] = None
+    _pattern: Union[Pattern[str], None] = None
     _transform: Union[Callable[[str], str], None] = None
+    _min_len: Union[int, None] = None
+    _max_len: Union[int, None] = None
+    _autostrip: bool = True
+    _upper: bool = False
+    _lower: bool = False
 
-    def __init__(self, field: Union[str, None] = None, value: Union[str, None] = None, is_id: bool = False, required: bool = True, default: Union[str, None] = None, nullable: bool = True, json_field: Union[str, None] = None) -> None:
-        super().__init__(field, value, is_id, required, default, nullable, json_field)
+    def __init__(self,
+                 value: Union[str, None] = None,
+                 field: Union[str, None] = None,
+                 primary_key: bool = False,
+                 required: bool = True,
+                 default: Union[str, None] = None,
+                 nullable: bool = True,
+                 json_field: Union[str, None] = None,
+                 not_empty: bool = False,
+                 pattern: Union[Pattern[str], None, str] = None,
+                 transform: Union[Callable[[str], str], None] = None,
+                 min_length: Union[int, None] = None,
+                 max_length: Union[int, None] = None,
+                 auto_strip: bool = True,
+                 uppercase: bool = False,
+                 lowercase: bool = False,
+                 ) -> None:
+        self._not_empty = not_empty
+        if isinstance(pattern, str):
+            pattern = compile(pattern)
+        self._pattern = pattern
+        self._transform = transform
+        self._min_len = min_length
+        self._max_len = max_length
+        if uppercase is True and lowercase is True:
+            raise ValueError(
+                'uppercase and lowercase cannot be both true, and yet they are')
+        self._autostrip = auto_strip
+        self._upper = uppercase
+        self._lower = lowercase
+        super().__init__(field, value, primary_key, required, default, nullable, json_field)
+
+    def _more_validation(self) -> None:
+        _more_validation(self._value, self._not_empty,
+                         self._pattern, self._min_len, self._max_len)
+
+    def _transform_fun(self, val: str) -> str:
+        return _transform_val(val, self._transform, self._autostrip,
+                              self._lower, self._upper)
+
+    def _ggt(self) -> Any:
+        return GqlString
 
 
 class NSText(NSDType[str]):
     _t = str
+    _not_empty: bool = False
+    _pattern: Union[Pattern, None] = None
+    _transform: Union[Callable[[str], str], None] = None
+    _min_len: Union[int, None] = None
+    _max_len: Union[int, None] = None
+    _autostrip: bool = True
+    _upper: bool = False
+    _lower: bool = False
 
-    def __init__(self, field: Union[str, None] = None, value: Union[str, None] = None, is_id: bool = False, required: bool = True, default: Union[str, None] = None, json_field: Union[str, None] = None) -> None:
-        super().__init__(field, value, is_id, required, default, json_field)
+    def __init__(self,
+                 value: Union[str, None] = None,
+                 field: Union[str, None] = None,
+                 primary_key: bool = False,
+                 required: bool = True,
+                 default: Union[str, None] = None,
+                 json_field: Union[str, None] = None,
+                 not_empty: bool = False,
+                 pattern: Union[Pattern[str], None, str] = None,
+                 transform: Union[Callable[[str], str], None] = None,
+                 min_length: Union[int, None] = None,
+                 max_length: Union[int, None] = None,
+                 auto_strip: bool = True,
+                 uppercase: bool = False,
+                 lowercase: bool = False,
+                 ) -> None:
+        self._not_empty = not_empty
+        if isinstance(pattern, str):
+            pattern = compile(pattern)
+        self._pattern = pattern
+        self._transform = transform
+        self._min_len = min_length
+        self._max_len = max_length
+        if uppercase is True and lowercase is True:
+            raise ValueError(
+                'uppercase and lowercase cannot be both true, and yet they are')
+        self._autostrip = auto_strip
+        self._upper = uppercase
+        self._lower = lowercase
+        super().__init__(field, value, primary_key, required, default, json_field)
+
+    def _more_validation(self) -> None:
+        _more_validation(self._value, self._not_empty,
+                         self._pattern, self._min_len, self._max_len)
+
+    def _transform_fun(self, val: str) -> str:
+        return _transform_val(val, self._transform, self._autostrip,
+                              self._lower, self._upper)
+
+    def _ggt(self) -> Any:
+        return lambda **kwargs: NonNull(GqlString, **kwargs)
 
 
 class String(Text):
