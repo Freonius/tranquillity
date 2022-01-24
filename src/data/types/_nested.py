@@ -41,6 +41,9 @@ class NSDict(NSDType[dict]):
     def __init__(self, field: Union[str, None] = None, value: Union[TDict, None] = None, is_id: bool = False, required: bool = True, default: Union[TDict, None] = None, json_field: Union[str, None] = None) -> None:
         super().__init__(field, value, is_id, required, default, json_field)
 
+    def _ggt(self) -> Any:
+        return super()._ggt()
+
 
 class Nested(DType[T], Generic[T]):
     _is_dict = True

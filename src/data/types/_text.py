@@ -1,8 +1,6 @@
-from inspect import getmembers
-from typing import Any, Union, Callable, Type
+from typing import Any, Union, Callable
 from re import Pattern, match, Match, compile
-from graphene import Field, NonNull, String as GqlString, Scalar
-from graphql.type.definition import GraphQLResolveInfo
+from graphene import NonNull, String as GqlString
 from ._dtype import DType
 from ._nsdtype import NSDType
 from ...exceptions import ValidationError
