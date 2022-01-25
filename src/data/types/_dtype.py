@@ -64,6 +64,8 @@ class DType(ABC, Generic[T]):
             if self._default is not None:
                 return self._default
             raise ValueError
+        if self._value is None and self._default is not None:
+            return self._default
         return self._value
 
     def _value_setter(self, val: Union[T, None]) -> None:
@@ -100,6 +102,7 @@ class DType(ABC, Generic[T]):
     def is_id(self) -> bool:
         return self._is_id
 
+    @property
     def is_primary_key(self) -> bool:
         return self._is_id
 

@@ -12,9 +12,9 @@ class DateTime(DType[datetime]):
     _format: str = '%Y-%m-%d %H:%M:%S.%f'
 
     def iter_value(self) -> Union[str, None]:
-        if self._value is None:
+        if self.value is None:
             return None
-        return self._value.strftime(self._format)
+        return self.value.strftime(self._format)
 
     def _ggt(self) -> Any:
         return GqlDateTime
@@ -60,9 +60,9 @@ class NSDateTime(NSDType[datetime]):
     _format: str = '%Y-%m-%d %H:%M:%S.%f'
 
     def iter_value(self) -> Union[str, None]:
-        if self._value is None:
+        if self.value is None:
             return None
-        return self._value.strftime(self._format)
+        return self.value.strftime(self._format)
 
     def _ggt(self) -> Any:
         return GqlDateTime

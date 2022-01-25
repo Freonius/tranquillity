@@ -23,6 +23,10 @@ class Dict(DType[dict]):
     def __init__(self, field: Union[str, None] = None, value: Union[TDict, None] = None, is_id: bool = False, required: bool = True, default: Union[TDict, None] = None, nullable: bool = True, json_field: Union[str, None] = None) -> None:
         super().__init__(field, value, is_id, required, default, nullable, json_field)
 
+    def _ggt(self) -> Any:
+        # TODO
+        return super()._ggt()
+
 
 class NSDict(NSDType[dict]):
     _t = dict
@@ -42,6 +46,7 @@ class NSDict(NSDType[dict]):
         super().__init__(field, value, is_id, required, default, json_field)
 
     def _ggt(self) -> Any:
+        # TODO
         return super()._ggt()
 
 
@@ -62,6 +67,10 @@ class Nested(DType[T], Generic[T]):
             return {}
         return self._value.to_dict()
 
+    def _ggt(self) -> Any:
+        # TODO
+        return super()._ggt()
+
 
 class NSNested(NSDType[T], Generic[T]):
     _is_dict = True
@@ -79,3 +88,7 @@ class NSNested(NSDType[T], Generic[T]):
         if self._value is None:
             return {}
         return self._value.to_dict()
+
+    def _ggt(self) -> Any:
+        # TODO
+        return super()._ggt()

@@ -26,6 +26,26 @@ class Int(DType[int]):
     _between: Union[Tuple[int, int], None] = None
     _in: Union[None, Iterable[int]] = None
 
+    def __init__(self,
+                 value: Union[int, None] = None,
+                 field: Union[str, None] = None,
+                 *,
+                 is_id: bool = False,
+                 required: bool = True,
+                 default: Union[int, None] = None,
+                 nullable: bool = True,
+                 json_field: Union[str, None] = None,
+                 greater_than_zero: bool = False,
+                 greater_then_or_equal_to_zero: bool = False,
+                 between: Union[Tuple[int, int], None] = None,
+                 is_in: Union[None, Iterable[int]] = None,
+                 ) -> None:
+        self._gt_zero = greater_than_zero
+        self._ge_zero = greater_then_or_equal_to_zero
+        self._between = between
+        self._in = is_in
+        super().__init__(field, value, is_id, required, default, nullable, json_field)
+
     def _more_validation(self) -> None:
         _val(self._value, self._gt_zero, self._ge_zero, self._between, self._in)
 
@@ -39,6 +59,25 @@ class NSInt(NSDType[int]):
     _ge_zero: bool = False
     _between: Union[Tuple[int, int], None] = None
     _in: Union[None, Iterable[int]] = None
+
+    def __init__(self,
+                 value: Union[int, None] = None,
+                 field: Union[str, None] = None,
+                 *,
+                 is_id: bool = False,
+                 required: bool = True,
+                 default: Union[int, None] = None,
+                 json_field: Union[str, None] = None,
+                 greater_than_zero: bool = False,
+                 greater_then_or_equal_to_zero: bool = False,
+                 between: Union[Tuple[int, int], None] = None,
+                 is_in: Union[None, Iterable[int]] = None,
+                 ) -> None:
+        self._gt_zero = greater_than_zero
+        self._ge_zero = greater_then_or_equal_to_zero
+        self._between = between
+        self._in = is_in
+        super().__init__(field, value, is_id, required, default, json_field)
 
     def _more_validation(self) -> None:
         _val(self._value, self._gt_zero, self._ge_zero, self._between, self._in)
