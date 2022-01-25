@@ -51,6 +51,13 @@ class DType(ABC, Generic[T]):
 
     @property
     def value(self) -> Union[T, None]:
+        return self._value_getter()
+
+    @value.setter
+    def value(self, val: Union[T, None]) -> None:
+        self._value_setter(val)
+
+    def _value_getter(self) -> Union[T, None]:
         if isinstance(self._value, NotImplementedType):
             self._value = None
         if self._value is None and self._nullable is False:
@@ -59,8 +66,7 @@ class DType(ABC, Generic[T]):
             raise ValueError
         return self._value
 
-    @value.setter
-    def value(self, val: Union[T, None]) -> None:
+    def _value_setter(self, val: Union[T, None]) -> None:
         if isinstance(val, NotImplementedType):
             val = None
         if val is None and self._nullable is False:
@@ -171,14 +177,14 @@ class DType(ABC, Generic[T]):
     def to_list(self) -> Union[List[Any], None]:
         return None
 
-    def iter_value(self) -> Union[T, None, List[Any], Dict[str, Any]]:
+    def iter_value(self) -> Union[T, str, None, List[Any], Dict[str, Any]]:
         if self._is_dict is True:
             return self.to_dict()
         if self._is_list is True:
             return self.to_list()
         return self.value
 
-    def serialize(self) -> Union[T, None, List[Any], Dict[str, Any]]:
+    def serialize(self) -> Union[T, str, None, List[Any], Dict[str, Any]]:
         return self.iter_value()
 
     @abstractmethod

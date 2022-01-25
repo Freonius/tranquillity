@@ -1,44 +1,10 @@
 from typing import Generic, TypeVar, Type, Iterable, Union, List as TList, Any
 from ._dtype import DType
 from ._nested import Nested, Dict
+from ._array import Array
 from .._dataobject import DataObject
 
-_T = TypeVar('_T')
 T = TypeVar('T')
-
-
-class Array(list, Generic[_T]):
-    _t: Type[_T]
-
-    def __init__(self, t: Type[_T], el: Union[Iterable[_T], None] = None) -> None:
-        self._t = t
-        super().__init__()
-        if el is not None:
-            for e in el:
-                if not isinstance(e, self._t):
-                    raise TypeError('Here')
-            self.extend(el)
-
-    @property
-    def get_generic(self) -> Type[_T]:
-        return self._t
-
-    def append(self, __object: _T) -> None:
-        if not isinstance(__object, self._t):
-            raise TypeError
-        return super().append(__object)
-
-    def extend(self, __iterable: Iterable[_T]) -> None:
-        for e in __iterable:
-            if not isinstance(e, self._t):
-                raise TypeError
-        return super().extend(__iterable)
-
-    def uniques(self) -> Iterable[_T]:
-        return list(set(self))
-
-    def distincts(self) -> Iterable[_T]:
-        return self.uniques()
 
 
 class List(DType[Array[T]], Generic[T]):
@@ -64,16 +30,14 @@ class List(DType[Array[T]], Generic[T]):
                 _out.append(x)
         return _out
 
-    @property
-    def value(self) -> Union[Array[T], None]:
+    def _value_getter(self) -> Union[Array[T], None]:
         if self._value is None and self._nullable is False:
             if self._default is not None:
                 return self._default
             raise ValueError
         return self._value
 
-    @value.setter
-    def value(self, val: Union[Array[T], None]) -> None:
+    def _value_setter(self, val: Union[Array[T], None]) -> None:
         if val is None and self._nullable is False:
             raise ValueError
         if isinstance(val, list):

@@ -14,7 +14,7 @@ class PhoneNumber(Text):
 
     def __init__(self, value: Union[str, None] = None, field: Union[str, None] = None, primary_key: bool = False, required: bool = True, default: Union[str, None] = None, nullable: bool = True, json_field: Union[str, None] = None, not_empty: bool = False) -> None:
         super().__init__(value, field, primary_key, required, default, nullable,
-                         json_field, not_empty, None, None, None, None, True, False, False)
+                         json_field, True, None, None, None, None, True, False, False)
 
 
 class NSPhoneNumber(NSText):
@@ -27,4 +27,4 @@ class NSPhoneNumber(NSText):
 
     def __init__(self, value: Union[str, None] = None, field: Union[str, None] = None, primary_key: bool = False, required: bool = True, default: Union[str, None] = None, json_field: Union[str, None] = None, not_empty: bool = False) -> None:
         super().__init__(value, field, primary_key, required, default,
-                         json_field, not_empty, None, None, None, None, True, False, False)
+                         json_field, True, None, None, None, None, True, False, False)

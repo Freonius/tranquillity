@@ -12,13 +12,10 @@ class NSDType(DType[T], Generic[T]):
     def value(self) -> T:
         if isinstance(self._value, NotImplementedType):
             raise ValueError
-        if self._value is None and self._nullable is False:
-            if self._default is not None:
-                return self._default
+        val = self._value_getter()
+        if val is None:
             raise ValueError
-        if not isinstance(self._value, self._t):
-            raise TypeError
-        return self._value
+        return val
 
     @value.setter
     def value(self, val: T) -> None:
@@ -26,10 +23,7 @@ class NSDType(DType[T], Generic[T]):
             raise ValueError
         if val is None and self._nullable is False:
             raise ValueError
-        val = self._transform_fun(val)
-        if not isinstance(val, self._t) and val is not None:
-            raise TypeError
-        self._value = val
+        self._value_setter(val)
 
     def __get__(self, instance, _) -> Union[T, 'NSDType']:
         if instance is None:

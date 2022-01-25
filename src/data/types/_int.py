@@ -1,4 +1,5 @@
-from typing import Iterable, Tuple, Union
+from typing import Iterable, Tuple, Union, Any
+from graphene import Int as GqlInt, NonNull
 from ._dtype import DType
 from ._nsdtype import NSDType
 from ...exceptions import ValidationError
@@ -28,6 +29,9 @@ class Int(DType[int]):
     def _more_validation(self) -> None:
         _val(self._value, self._gt_zero, self._ge_zero, self._between, self._in)
 
+    def _ggt(self) -> Any:
+        return GqlInt
+
 
 class NSInt(NSDType[int]):
     _t = int
@@ -38,3 +42,6 @@ class NSInt(NSDType[int]):
 
     def _more_validation(self) -> None:
         _val(self._value, self._gt_zero, self._ge_zero, self._between, self._in)
+
+    def _ggt(self) -> Any:
+        return lambda **kwargs: NonNull(GqlInt, **kwargs)
