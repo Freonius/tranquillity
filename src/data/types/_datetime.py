@@ -12,7 +12,7 @@ def _convert(value: Union[datetime, date, str, None]) -> Union[datetime, None]:
         value = date.today()
     if isinstance(value, str):
         if isinstance(_new_val := parse(value, strict=False), (datetime, date)):
-            if isinstance(_new_val, date):
+            if not isinstance(_new_val, datetime):
                 _new_val = PenDateTime.combine(
                     _new_val, time(0, 0))
                 if not isinstance(_new_val, datetime):
@@ -20,7 +20,7 @@ def _convert(value: Union[datetime, date, str, None]) -> Union[datetime, None]:
             value = _new_val
         else:
             raise TypeError
-    if isinstance(value, date):
+    if not isinstance(value, datetime) and value is not None:
         value = PenDateTime.combine(
             value, time(0, 0))
         if not isinstance(value, datetime):

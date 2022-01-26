@@ -34,7 +34,15 @@ class Float(DType[float]):
                  default: Union[float, None] = None,
                  nullable: bool = True,
                  json_field: Union[str, None] = None,
+                 greater_than_zero: bool = False,
+                 greater_then_or_equal_to_zero: bool = False,
+                 between: Union[Tuple[float, float], None] = None,
+                 is_in: Union[None, Iterable[float]] = None,
                  ) -> None:
+        self._gt_zero = greater_than_zero
+        self._ge_zero = greater_then_or_equal_to_zero
+        self._between = between
+        self._in = is_in
         super().__init__(field, value, is_id, required, default, nullable, json_field)
 
     def _more_validation(self) -> None:
@@ -58,7 +66,15 @@ class NSFloat(NSDType[float]):
                  required: bool = True,
                  default: Union[float, None] = None,
                  json_field: Union[str, None] = None,
+                 greater_than_zero: bool = False,
+                 greater_then_or_equal_to_zero: bool = False,
+                 between: Union[Tuple[float, float], None] = None,
+                 is_in: Union[None, Iterable[float]] = None,
                  ) -> None:
+        self._gt_zero = greater_than_zero
+        self._ge_zero = greater_then_or_equal_to_zero
+        self._between = between
+        self._in = is_in
         super().__init__(field, value, is_id, required, default, json_field)
 
     def _more_validation(self) -> None:

@@ -3,9 +3,9 @@ from typing import Any, Callable, Dict, List, Tuple, Union, Iterator, Iterable, 
 from inspect import getmembers
 from json import loads, dumps
 from copy import deepcopy
-from attr import attrs
 from rule_engine import type_resolver_from_dict, Context, DataType, Rule
-from graphene import ObjectType, String, Schema, Field
+from graphene import ObjectType
+from sqlalchemy import Table
 from .types._dtype import DType
 from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError
