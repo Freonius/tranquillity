@@ -1,5 +1,10 @@
 name: Python
-on: [push]
+on:
+  push:
+    branches:
+      - master
+      - main
+
 jobs:
   Python:
     runs-on: ubuntu-latest

@@ -1,0 +1,2 @@
+class QueryFormatError(Exception):
+    pass

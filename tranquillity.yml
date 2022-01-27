@@ -8,15 +8,15 @@ app:
 
 conn:
   mongo:
-    host: mongo
-    port: 1234
-    user: root
+    host: localhost
+    port: 27017
+    user: user
     password: example
     db: example
   elasticsearch:
     host: localhost
     port: 9200
-    user: user
+    user: elastic
     password: password
     protocol: http
   rabbitmq:
@@ -59,6 +59,8 @@ log:
       db: tq
       table: logs
       schema: tranquillity
+    rabbitmq:
+      queue: tq-logs
     
 objects:
   president:

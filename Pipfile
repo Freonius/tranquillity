@@ -1,0 +1,48 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+spring-config-client = ">=0.2,<1.0"
+pyyaml = ">=5.0"
+configobj = ">=5.0,<6.0"
+unflatten = ">=0.1,<0.2"
+couchdb = "*"
+elasticsearch = {extras = ["async"], version = "*"}
+pymongo = "*"
+pika = "*"
+hazelcast-python-client = "*"
+kafka-python = "*"
+ibm-db = "*"
+ibm-db-sa = "*"
+beautifulsoup4 = "*"
+rule-engine = "*"
+
+[dev-packages]
+pylint = "*"
+pycodestyle = "*"
+autopep8 = "*"
+pytest = "*"
+pytest-cov = "*"
+twine = "*"
+python-dotenv = "*"
+mypy = "*"
+mypy-extensions = "*"
+types-croniter = "*"
+types-pyyaml = "*"
+types-requests = "*"
+wheel = "*"
+memory-profiler = "*"
+
+[requires]
+python_version = "3.10"
+
+[scripts]
+run-lint = "pylint ./src/ --reports=y --output-format=json:lint/tranquillity.json,colorized"
+run-mypy = "mypy ./src/"
+run-test = "pytest ./tests --cov=./src/ --cov-report=xml:./coverage/tranquillity.xml --cov-report=html:./coverage/tranquillity"
+prepare-mypy = "mypy --install-types"
+run-build = "python setup.py bdist --dist-dir ./dist/tranquillity"
+run-install = "python -c 'raise NotImplementedError'"
+run-publish = "python -c 'raise NotImplementedError'"
