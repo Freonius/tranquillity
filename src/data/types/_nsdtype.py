@@ -1,6 +1,7 @@
 from typing import Generic, Type
 from types import NotImplementedType
 from graphene import Field
+from sqlalchemy import Column
 from ._dtype import DType, T, Union
 
 
@@ -54,4 +55,7 @@ class NSDType(DType[T], Generic[T]):
             self.value = value
 
     def _ggt(self) -> Type[Field]:
+        raise NotImplementedError
+
+    def get_sqlalchemy_column(self) -> Column:
         raise NotImplementedError

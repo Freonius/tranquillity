@@ -1,13 +1,13 @@
 from datetime import date
 from typing import Union, Any
-from pendulum import parse
 from graphene import DateTime as GqlDateTime, NonNull
+from sqlalchemy import Column, Date as SqlDate
 from ._dtype import DType
 from ._nsdtype import NSDType
 from ._datetime import _convert
 
 
-class DateTime(DType[date]):
+class Date(DType[date]):
     _t = date
     _format: str = '%Y-%m-%d'
 
@@ -44,6 +44,14 @@ class DateTime(DType[date]):
             format = '%Y-%m-%d'
         self._format = format
         super().__init__(field, value, is_id, required, default, nullable, json_field)
+
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, SqlDate,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
 
 
 class NSDate(NSDType[date]):
@@ -83,3 +91,11 @@ class NSDate(NSDType[date]):
             format = '%Y-%m-%d'
         self._format = format
         super().__init__(field, value, is_id, required, default, json_field)
+
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, SqlDate,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )

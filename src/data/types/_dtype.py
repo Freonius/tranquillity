@@ -2,6 +2,7 @@ from abc import ABC, abstractclassmethod, abstractmethod
 from types import NotImplementedType
 from typing import Any, Dict, Tuple, Type, Union, Generic, TypeVar, List
 from graphene import Field
+from sqlalchemy import Column
 from ...exceptions import ValidationError
 
 T = TypeVar('T')
@@ -203,3 +204,7 @@ class DType(ABC, Generic[T]):
                            default_value=self._default, resolver=_resolver)
 
         return _out
+
+    @abstractmethod
+    def get_sqlalchemy_column(self) -> Column:
+        pass

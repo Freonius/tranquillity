@@ -3,6 +3,7 @@ from typing import Union, Any
 from pendulum import parse
 from pendulum.datetime import DateTime as PenDateTime
 from graphene import DateTime as GqlDateTime, NonNull
+from sqlalchemy import Column, DateTime as SqlDateTime
 from ._dtype import DType
 from ._nsdtype import NSDType
 
@@ -62,6 +63,14 @@ class DateTime(DType[datetime]):
         self._format = format
         super().__init__(field, value, is_id, required, default, nullable, json_field)
 
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, SqlDateTime,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
+
 
 class NSDateTime(NSDType[datetime]):
     _t = datetime
@@ -102,3 +111,11 @@ class NSDateTime(NSDType[datetime]):
             format = '%Y-%m-%dT%H:%M:%S.%f'
         self._format = format
         super().__init__(field, value, is_id, required, default, json_field)
+
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, SqlDateTime,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )

@@ -1,6 +1,7 @@
-from typing import Any, Union, Callable
+from typing import Any, Union, Callable, List
 from re import Pattern, match, Match, compile
 from graphene import NonNull, String as GqlString
+from sqlalchemy import Column, String as SqlString, Constraint, CheckConstraint
 from ._dtype import DType
 from ._nsdtype import NSDType
 from ...exceptions import ValidationError
@@ -96,6 +97,22 @@ class Text(DType[str]):
     def _ggt(self) -> Any:
         return GqlString
 
+    def get_sqlalchemy_column(self) -> Column:
+        constrainst: List[Constraint] = []
+        if self._min_len is not None:
+            constrainst.append(CheckConstraint(
+                f'LENGTH({self.field}) >= {self._min_len}',))
+        if self._max_len is True:
+            constrainst.append(CheckConstraint(
+                f'LENGTH({self.field}) <= {self._max_len}',))
+        return Column(
+            self.field, SqlString,
+            *constrainst,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
+
 
 class NSText(NSDType[str]):
     _t = str
@@ -149,6 +166,22 @@ class NSText(NSDType[str]):
 
     def _ggt(self) -> Any:
         return lambda **kwargs: NonNull(GqlString, **kwargs)
+
+    def get_sqlalchemy_column(self) -> Column:
+        constrainst: List[Constraint] = []
+        if self._min_len is not None:
+            constrainst.append(CheckConstraint(
+                f'LENGTH({self.field}) >= {self._min_len}',))
+        if self._max_len is True:
+            constrainst.append(CheckConstraint(
+                f'LENGTH({self.field}) <= {self._max_len}',))
+        return Column(
+            self.field, SqlString,
+            *constrainst,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
 
 
 class String(Text):

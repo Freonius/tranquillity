@@ -1,5 +1,6 @@
-from typing import Union, Tuple, Iterable, Any
+from typing import List, Union, Tuple, Iterable, Any
 from graphene import Float as GqlFloat, NonNull
+from sqlalchemy import Column, Float as SqlFloat, Constraint, CheckConstraint
 from ._dtype import DType
 from ._nsdtype import NSDType
 from ...exceptions import ValidationError
@@ -51,6 +52,28 @@ class Float(DType[float]):
     def _ggt(self) -> Any:
         return GqlFloat
 
+    def get_sqlalchemy_column(self) -> Column:
+        constrainst: List[Constraint] = []
+        if self._gt_zero is True:
+            constrainst.append(CheckConstraint(
+                f'{self.field} > 0',))
+        if self._ge_zero is True:
+            constrainst.append(CheckConstraint(
+                f'{self.field} >= 0',))
+        if self._between is not None:
+            constrainst.append(CheckConstraint(
+                f'{self.field} >= {self._between[0]} and {self.field} <= {self._between[1]}',))
+        if self._in is not None and len(tuple(self._in)) > 0:
+            constrainst.append(CheckConstraint(
+                f'{self.field} IN {str(tuple(self._in))}',))
+        return Column(
+            self.field, SqlFloat,
+            *constrainst,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
+
 
 class NSFloat(NSDType[float]):
     _t = float
@@ -82,3 +105,25 @@ class NSFloat(NSDType[float]):
 
     def _ggt(self) -> Any:
         return lambda **kwargs: NonNull(GqlFloat, **kwargs)
+
+    def get_sqlalchemy_column(self) -> Column:
+        constrainst: List[Constraint] = []
+        if self._gt_zero is True:
+            constrainst.append(CheckConstraint(
+                f'{self.field} > 0',))
+        if self._ge_zero is True:
+            constrainst.append(CheckConstraint(
+                f'{self.field} >= 0',))
+        if self._between is not None:
+            constrainst.append(CheckConstraint(
+                f'{self.field} >= {self._between[0]} and {self.field} <= {self._between[1]}',))
+        if self._in is not None and len(tuple(self._in)) > 0:
+            constrainst.append(CheckConstraint(
+                f'{self.field} IN {str(tuple(self._in))}',))
+        return Column(
+            self.field, SqlFloat,
+            *constrainst,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )

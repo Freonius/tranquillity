@@ -2,6 +2,7 @@ from datetime import datetime, time
 from typing import Union, Any
 from pendulum import parse
 from graphene import NonNull, Time as GqlTime
+from sqlalchemy import Column, Time as SqlTime
 from ._dtype import DType
 from ._nsdtype import NSDType
 
@@ -51,6 +52,14 @@ class Time(DType[time]):
         self._format = format
         super().__init__(field, value, is_id, required, default, nullable, json_field)
 
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, SqlTime,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
+
 
 class NSTime(NSDType[time]):
     _t = time
@@ -82,3 +91,11 @@ class NSTime(NSDType[time]):
             format = '%H:%M:%S.%f'
         self._format = format
         super().__init__(field, value, is_id, required, default, json_field)
+
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, SqlTime,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )

@@ -2,6 +2,7 @@ from typing import Any, Iterator, Tuple, TypeVar, Generic, Type, Union, Dict as 
 from ._dtype import DType
 from ._nsdtype import NSDType
 from .._dataobject import DataObject
+# TODO: sqlalchemy
 
 T = TypeVar('T', bound=DataObject)
 

@@ -1,4 +1,5 @@
 from abc import ABC
+from types import NotImplementedType
 from typing import Any, Callable, Dict, List, Tuple, Union, Iterator, Iterable, TypeVar, Type
 from inspect import getmembers
 from json import loads, dumps
@@ -6,6 +7,8 @@ from copy import deepcopy
 from rule_engine import type_resolver_from_dict, Context, DataType, Rule
 from graphene import ObjectType
 from sqlalchemy import Table
+from sqlalchemy.engine import Engine, Connection
+from sqlalchemy.schema import MetaData
 from .types._dtype import DType
 from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError
@@ -39,6 +42,20 @@ class DataObject(ABC):
         return type('GQL' + cls.__class__.__name__, (ObjectType,), {
             x[0]: x[1].get_graphql_type() for x in flds
         })
+
+    @classmethod
+    def alchemy_table(cls, engine: Union[Engine, Connection, None] = None) -> Table:
+        cols = [x.get_sqlalchemy_column() for x in cls.get_fields()]
+        metadata = MetaData(bind=engine)
+        tbl: str = ''
+        if isinstance(cls.__table__, NotImplementedType):
+            tbl = cls.__name__.lower()
+        else:
+            tbl = cls.__table__
+        t = Table(tbl, metadata, schema=cls.__schema__)
+        for col in cols:
+            t.append_column(col)
+        return t
 
     def get_graphql_type(self) -> ObjectType:
         attr = {
@@ -198,3 +215,7 @@ class DataObject(ABC):
         if self == __o:
             return False
         return True
+
+    @classmethod
+    def elasticsearch_mapping(cls) -> Dict[str, Any]:
+        pass  # TODO

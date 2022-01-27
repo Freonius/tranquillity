@@ -1,4 +1,5 @@
 from typing import Any, Union, Iterable, Tuple
+from sqlalchemy import Column, Integer as SqlInt
 from bson import ObjectId
 from graphene.types import String
 from ._dtype import DType
@@ -20,6 +21,15 @@ class Id(Int):
                          json_field=json_field, greater_than_zero=True,
                          greater_then_or_equal_to_zero=False, between=between, is_in=is_in)
 
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, SqlInt,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+            autoincrement=self._auto_increment,
+        )
+
 
 class MongoId(DType[ObjectId]):
     _t = ObjectId
@@ -39,7 +49,7 @@ class MongoId(DType[ObjectId]):
     def __init__(self,
                  value: Union[ObjectId, str, None] = None,
                  field: Union[str, None] = '_id',
-                 is_id: bool = False,
+                 is_id: bool = True,
                  required: bool = True,
                  generate: bool = False,
                  json_field: Union[str, None] = None) -> None:
@@ -50,3 +60,6 @@ class MongoId(DType[ObjectId]):
 
     def _ggt(self) -> Any:
         return String
+
+    def get_sqlalchemy_column(self) -> Column:
+        raise TypeError('mongoid cannot be converted to sqlalchemy')
