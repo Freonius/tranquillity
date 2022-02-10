@@ -26,7 +26,7 @@ class Mongo(IConnection):
         _host: Union[str, None] = self._settings.lookup(_ks('host'))
         if _host is None:
             raise ConnectionException('host is not defined')
-        _port: int = int(str(self._settings.lookup(_ks('port'), '5984')))
+        _port: int = int(str(self._settings.lookup(_ks('port'), '27017')))
         _protocol: Union[str, None] = None
         try:
             _protocol = self._settings.lookup(_ks('protocol'), 'http')
