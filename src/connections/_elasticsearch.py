@@ -17,7 +17,9 @@ class Elasticsearch(IConnection):
         _host: Union[str, None] = self._settings.get('conn.elasticsearch.host')
         if _host is None:
             raise ConnectionException('host is not defined')
-        _port: int = self._settings.get_int('conn.elasticsearch.port', 9200)
+        _port: Union[int, None]
+        if (_port := self._settings.get_int('conn.elasticsearch.port', 9200)) is None:
+            _port = 9200
         _protocol: Union[str, None] = None
         try:
             _protocol = self._settings.get(

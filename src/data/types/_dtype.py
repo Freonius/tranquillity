@@ -1,7 +1,8 @@
-from abc import ABC, abstractclassmethod, abstractmethod
+from abc import ABC, abstractmethod
 from types import NotImplementedType
-from typing import Any, Dict, Tuple, Type, Union, Generic, TypeVar, List
+from typing import Any, Callable, Dict, Type, Union, Generic, TypeVar, List
 from graphene import Field
+from pandas import isna
 from sqlalchemy import Column
 from ...exceptions import ValidationError
 
@@ -72,6 +73,8 @@ class DType(ABC, Generic[T]):
     def _value_setter(self, val: Union[T, None]) -> None:
         if isinstance(val, NotImplementedType):
             val = None
+        if isna(val) is True:
+            val = None
         if val is None and self._nullable is False:
             raise ValueError
         if val is not None:
@@ -107,7 +110,10 @@ class DType(ABC, Generic[T]):
     def is_primary_key(self) -> bool:
         return self._is_id
 
-    def __eq__(self, __o: object) -> bool:
+    def __eq__(self, __o: object) -> Union[Callable[[Any], str], None]: # type: ignore
+        def where(conn_type) -> str:
+            return f'{self.field} == {__o}'
+        return where
         if isinstance(__o, type(self)):
             if self.value == __o.value:
                 return True
