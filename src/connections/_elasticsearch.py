@@ -1,10 +1,11 @@
 '''
 Module for Elasticsearch operations
 '''
-from typing import Union
+from typing import Union, Tuple, Iterator, Type
 from elasticsearch.client import Elasticsearch as ES
 from ..exceptions import ConnectionException
 from .__interface import IConnection
+from .__alias import T, IdType, WhereType
 
 
 class Elasticsearch(IConnection):
@@ -61,7 +62,20 @@ class Elasticsearch(IConnection):
             raise ConnectionException('Client is None')
         return self._client
 
+    def select(self, t: Type[T], /, id: IdType = None, where: WhereType = None) -> Iterator[T]:
+        if id is not None:
+            id
+        self.client.search(index=t.get_table(), body={})
+        raise NotImplementedError
 
-if __name__ == '__main__':
-    with Elasticsearch() as e:
-        print(e.is_connected)
+    def insert(self, obj: T) -> Tuple[Union[T, None], IdType, bool]:
+        return super().insert(obj)
+
+    def update(self, obj: T, /, id: IdType = None, where: WhereType = None) -> Tuple[Union[T, None], bool]:
+        return super().update(obj, id, where)
+
+    def delete(self, obj: T) -> bool:
+        pass
+
+    def delete_where(self, t: Type[T], /, id: IdType = None, where: WhereType = None) -> int:
+        return super().delete_where(t, id, where)

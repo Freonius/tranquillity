@@ -1,11 +1,12 @@
 from logging import Logger
-from typing import AnyStr, Union, Any, Callable, Set
+from typing import AnyStr, Union, Any, Callable, Set, Tuple, Type, Iterator
 from pickle import dumps, loads
 from pika import BlockingConnection, ConnectionParameters, PlainCredentials
 from pika.adapters.blocking_connection import BlockingChannel
 from ..settings import ISettings
-from ..exceptions import ConnectionException
+from ..exceptions import ConnectionException, NotAllowedOperation
 from .__interface import IConnection
+from .__alias import T, WhereType, IdType
 
 
 class Rabbit(IConnection):
@@ -75,7 +76,7 @@ class Rabbit(IConnection):
     def stop(self) -> None:
         self._channel.stop_consuming()
 
-    def delete(self) -> None:
+    def delete_queue(self) -> None:
         self._channel.queue_delete(self._queue)
 
     def connect(self) -> None:
@@ -83,7 +84,7 @@ class Rabbit(IConnection):
 
     def close(self) -> None:
         self.stop()
-        self.delete()
+        self.delete_queue()
         self._client.close()
 
     def _is_connected(self) -> bool:
@@ -96,3 +97,18 @@ class Rabbit(IConnection):
     @property
     def channel(self) -> BlockingChannel:
         return self._channel
+
+    def insert(self, obj: T) -> Tuple[Union[T, None], IdType, bool]:
+        raise NotAllowedOperation
+
+    def update(self, obj: T, /, id: IdType = None, where: WhereType = None) -> Tuple[Union[T, None], bool]:
+        raise NotAllowedOperation
+
+    def select(self, t: Type[T], /, id: IdType = None, where: WhereType = None) -> Iterator[T]:
+        raise NotAllowedOperation
+
+    def deltete(self, obj: T) -> bool:
+        raise NotAllowedOperation
+
+    def delete_where(self, t: Type[T], /, id: IdType = None, where: WhereType = None) -> int:
+        raise NotAllowedOperation

@@ -1,7 +1,30 @@
 from datetime import date, datetime, time
-from typing import Union
-from ._enums import SqlDialect
+from typing import Type, Union
+from bson import ObjectId
+from ._enums import SqlDialect, QueryType
 from ._dataclasses import Table
+
+
+def type_to_querytype(t: Type, is_list: bool = False) -> QueryType:
+    if is_list is True:
+        return QueryType.List
+    if t is str:
+        return QueryType.String
+    if t is int:
+        return QueryType.Int
+    if t is float:
+        return QueryType.Float
+    if t is bool:
+        return QueryType.Bool
+    if t is date:
+        return QueryType.Date
+    if t is time:
+        return QueryType.Time
+    if t is datetime:
+        return QueryType.DateTime
+    if t is ObjectId:
+        return QueryType.MongoId
+    return QueryType.Object
 
 
 def _date2sql(dt: Union[date, datetime, time], dialect: SqlDialect) -> str:

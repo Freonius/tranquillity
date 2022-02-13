@@ -1,6 +1,6 @@
 from abc import ABC
 from types import NotImplementedType
-from typing import Any, Callable, Dict, List, Tuple, Union, Iterator, Iterable, TypeVar, Type
+from typing import Any, Callable, Dict, List, Tuple, Union, Iterator, Iterable, TypeVar, Type, TYPE_CHECKING
 from inspect import getmembers
 from json import loads, dumps
 from copy import deepcopy
@@ -21,8 +21,10 @@ from .types._dtype import DType
 from .types._id import Id, MongoId
 from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError, ConnectionException
-from ..connections.__interface import IConnection
 from ..settings.__interface import ISettings
+
+if TYPE_CHECKING is True:
+    from ..connections.__interface import IConnection
 
 T = TypeVar('T', bound='DataObject')
 
@@ -32,8 +34,8 @@ class DataObject(ABC):
     __schema__: Union[str, None] = None
     __db__: Union[str, None] = None
     __data__: Dict[str, DType]
-    __cache__: Union[IConnection, None, Type[IConnection]] = None
-    __conn__: Union[IConnection, None, Type[IConnection]] = None
+    __cache__: Union['IConnection', None, Type['IConnection']] = None
+    __conn__: Union['IConnection', None, Type['IConnection']] = None
     __urlprefix__: str = r'/api/v1/'
     __settings__: Union[ISettings, None] = None
 
@@ -46,11 +48,16 @@ class DataObject(ABC):
             self[key] = val
         # self.validate()
 
-    @classproperty
-    def table(cls) -> str:
+    @classmethod
+    def get_table(cls: Type[T]) -> str:
+        _t: str
+        if cls.__table__ is None or isinstance(cls.__table__, NotImplementedType):
+            _t = cls.__name__
+        else:
+            _t = cls.__table__
         if cls.__schema__ is None:
-            return cls.__table__
-        return cls.__schema__ + '.' + cls.__table__
+            return _t
+        return cls.__schema__ + '.' + _t
 
     @classmethod
     def to_graphql(cls) -> Type[ObjectType]:
@@ -194,14 +201,6 @@ class DataObject(ABC):
     def set(self, key: str, val: Any) -> None:
         self[key] = val
 
-    def get_id(self) -> Union[str, int, None, ObjectId]:
-        for _, x in self.get_fields():
-            if isinstance(x, (Id, MongoId)):
-                if isinstance(x, MongoId):
-                    return x.value
-                return x.value
-        return None
-
     @classmethod
     def create_table(cls) -> bool:
         raise NotImplementedError
@@ -209,8 +208,8 @@ class DataObject(ABC):
     def add_to_db(self, mode: str = 'upsert') -> bool:
         if self.__conn__ is None:
             raise Exception
-        _conn: IConnection
-        if not isinstance(self.__conn__, IConnection):
+        _conn: 'IConnection'
+        if isinstance(self.__conn__, type):
             _conn = self.__conn__(self.__settings__)
         else:
             _conn = self.__conn__
@@ -219,6 +218,18 @@ class DataObject(ABC):
 
     def add_to_cache(self) -> bool:
         raise NotImplementedError
+
+    def get_id(self) -> Union[int, ObjectId, str, None]:
+        for _, dty in self.get_fields():
+            if isinstance(dty, (Id, MongoId)):
+                return dty.value
+        return None
+
+    def set_id(self, id: Union[int, ObjectId, str, None]) -> None:
+        for _, dty in self.get_fields():
+            if isinstance(dty, (Id, MongoId)):
+                dty.value = id
+                return
 
     @classmethod
     def get_from_db(cls: Type[T], id: Union[int, str, None] = None, where_conditions: Union[Iterable[str], None] = None) -> List[T]:
@@ -334,14 +345,15 @@ class DataObject(ABC):
             __object__: Type[T] = cls
 
             def write_error(self, status_code: int, **kwargs: Any) -> None:
-                te = self._reason
+                self.add_header('Content-Type', 'application/json')
+                _msg: str = self._reason
                 if 'exc_info' in kwargs:
                     if isinstance(kwargs['exc_info'], tuple):
                         for x in kwargs['exc_info']:
                             if isinstance(x, Exception):
-                                te = str(x)
+                                _msg = str(x)
                 self.write({'result': None, 'success': False, 'status_code': status_code,
-                            'message': te, 'datetime': datetime.now().isoformat()})
+                            'message': _msg, 'datetime': datetime.now().isoformat()})
                 self.set_status(500)
 
             def get(self, id: Union[int, str, None]):

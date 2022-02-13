@@ -3,9 +3,9 @@ from typing import Tuple, Union
 
 
 class QWhereV:
-    _val: Union[None, str, date, datetime, time, int, float]
+    _val: Union[None, str, date, datetime, time, int, float, object]
 
-    def __init__(self, val: Union[None, str, date, datetime, time, int, float]) -> None:
+    def __init__(self, val: Union[None, str, date, datetime, time, int, float, object]) -> None:
         self._val = val
         pass
 

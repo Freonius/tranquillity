@@ -1,11 +1,14 @@
 '''
 Module for the connection interface.
 '''
-from typing import Any, Dict, Type, Union
+from typing import Any, Dict, Tuple, Type, Union, TypeVar, Iterator, Iterable
 from logging import Logger
 from types import TracebackType
 from abc import ABC, abstractmethod
+from bson import ObjectId
+from ..query._dataclasses import WhereCondition
 from ..settings import ISettings, Yaml, KVSetting
+from .__alias import T, IdType, WhereType
 
 
 class IConnection(ABC):
@@ -112,4 +115,31 @@ class IConnection(ABC):
     def client(self) -> Any:
         return None
 
-    # TODO: Add execute_statement method.
+    @abstractmethod
+    def select(self, t: Type[T],
+               /,
+               id: IdType = None,
+               where: WhereType = None) -> Iterator[T]:
+        pass
+
+    @abstractmethod
+    def insert(self, obj: T) -> Tuple[Union[T, None], IdType, bool]:
+        pass
+
+    @abstractmethod
+    def update(self, obj: T,
+               /,
+               id: IdType = None,
+               where: WhereType = None) -> Tuple[Union[T, None], bool]:
+        pass
+
+    @abstractmethod
+    def delete(self, obj: T) -> bool:
+        pass
+
+    @abstractmethod
+    def delete_where(self, t: Type[T],
+                     /,
+                     id: IdType = None,
+                     where: WhereType = None) -> int:
+        pass
