@@ -1,10 +1,11 @@
 from abc import ABC
 from types import NotImplementedType
-from typing import Any, Callable, Dict, List, Tuple, Union, Iterator, Iterable, TypeVar, Type, TYPE_CHECKING
+from typing import Any, Awaitable, Callable, Dict, List, Tuple, Union, Iterator, Iterable, TypeVar, Type, TYPE_CHECKING
 from inspect import getmembers
 from json import loads, dumps
 from copy import deepcopy
 from datetime import date, datetime
+from logging import Logger
 from io import StringIO
 from string import Template
 from rule_engine import type_resolver_from_dict, Context, DataType, Rule
@@ -23,6 +24,7 @@ from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError, ConnectionException
 from ..settings.__interface import ISettings
 from ..query._where import WhereCondition
+from ..logger._custom_logger import CustomLogger
 
 if TYPE_CHECKING is True:
     from ..connections.__interface import IConnection
@@ -436,9 +438,14 @@ class DataObject(ABC):
         raise NotImplementedError
 
     @classmethod
-    def to_api(cls: Type[T]) -> Tuple[str, Type[RequestHandler]]:
+    def to_api(cls: Type[T], log: Union[Logger, None] = None) -> Tuple[str, Type[RequestHandler]]:
+        if log is None:
+            log = CustomLogger(cls.__settings__)
+
         class DataRequest(RequestHandler):
             __object__: Type[T] = cls
+            _mylog: Union[Logger, None] = log
+            _start: Union[datetime, None] = None
 
             def write_error(self, status_code: int, **kwargs: Any) -> None:
                 self.add_header('Content-Type', 'application/json')
@@ -447,13 +454,43 @@ class DataObject(ABC):
                     if isinstance(kwargs['exc_info'], tuple):
                         for x in kwargs['exc_info']:
                             if isinstance(x, Exception):
+                                if self._mylog is not None and not isinstance(x, HTTPError):
+                                    self._mylog.exception(x)
                                 _msg = str(x)
+                if self._mylog is not None:
+                    self._mylog.error(
+                        f'Got status code {status_code} with message {_msg}')
                 self.write({'result': None, 'success': False, 'status_code': status_code,
                             'message': _msg, 'datetime': datetime.now().isoformat()})
                 self.set_status(status_code)
 
-            def get(self, id: Union[int, str, None]):
+            def prepare(self) -> Union[Awaitable[None], None]:
                 self.add_header('Content-Type', 'application/json')
+                _method: str = str(self.request.method).upper()
+                _uri: str = str(self.request.uri)
+                if __debug__:
+                    self._start = datetime.now()
+                if self._mylog is not None:
+                    self._mylog.info(f'Started request: [{_method}] {_uri}')
+                return super().prepare()
+
+            def on_finish(self) -> None:
+                _method: str = str(self.request.method).upper()
+                _uri: str = str(self.request.uri)
+                _sc: int = self.get_status()
+                _ms: int = 0
+                if __debug__ and self._start is not None:
+                    _ms = (datetime.now() - self._start).microseconds
+                    self._start = None
+                if _ms > 0 and __debug__ and self._mylog is not None:
+                    self._mylog.debug(
+                        f'[{_method}] {_uri} Took {_ms * 0.001}ms')
+                if self._mylog is not None:
+                    self._mylog.info(
+                        f'Finished request (status_code: {_sc}): [{_method}] {_uri}')
+                return super().on_finish()
+
+            def get(self, id: Union[int, str, None]):
                 if isinstance(id, str) and len(id.strip()) == 0:
                     id = None
                 if self.__object__.__conn__ is None:
@@ -483,6 +520,8 @@ class DataObject(ABC):
                     raise TypeError('Body is not a dict')
                 _obj: T = self.__object__(**_data)
                 _obj.add_to_db()
+                if __debug__ and self._mylog is not None:
+                    self._mylog.debug(f'Added {_obj}')
                 self.write({'result': _obj.to_json(False), 'success': True, 'status_code': 200,
                             'msg': 'OK', 'datetime': datetime.now().isoformat()})
                 self.set_status(200)
@@ -496,16 +535,23 @@ class DataObject(ABC):
                 _obj: T = self.__object__(
                     **_data, **{str(self.__object__.get_id_field()): id})
                 _obj.add_to_db()
+                if __debug__ and self._mylog is not None:
+                    self._mylog.debug(f'Updated {_obj}')
                 self.write({'result': _obj.to_json(False), 'success': True, 'status_code': 200,
                             'msg': 'OK', 'datetime': datetime.now().isoformat()})
                 self.set_status(200)
 
             def delete(self, id: Union[int, str, None] = None):
+                if isinstance(id, str) and len(id.strip()) == 0:
+                    id = None
                 if id is None:
                     raise HTTPError(405)
                 _success = self.__object__.delete_from_db_where(id=id)
                 if _success == 0:
                     raise HTTPError(404)
+                if __debug__ and self._mylog is not None:
+                    self._mylog.debug(
+                        f'Deleted {self.__object__.__name__} with id {id}')
                 self.write({'result': None, 'success': True, 'status_code': 200,
                             'msg': 'OK', 'datetime': datetime.now().isoformat()})
                 self.set_status(200)
