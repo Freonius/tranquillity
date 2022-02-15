@@ -4,6 +4,7 @@ from bson import ObjectId
 from graphene.types import String
 from ._dtype import DType
 from ._int import Int
+from ._text import String as DString
 
 
 class Id(Int):
@@ -63,3 +64,16 @@ class MongoId(DType[ObjectId]):
 
     def get_sqlalchemy_column(self) -> Column:
         raise TypeError('mongoid cannot be converted to sqlalchemy')
+
+
+class StrId(DString):
+    def __init__(self,
+                 value: Union[str, None] = None,
+                 field: Union[str, None] = '_id',
+                 default: Union[str, None] = None,
+                 json_field: Union[str, None] = '_id') -> None:
+        super().__init__(value, field, True, True, default, True, json_field,
+                         True, None, None, None, None, True, False, False)
+
+    def serialize(self) -> Union[str, None]:
+        return self._value

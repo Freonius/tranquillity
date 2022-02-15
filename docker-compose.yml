@@ -50,7 +50,7 @@ services:
       - DB2INST1_PASSWORD=password
       - DBNAME=db
     volumes:
-      - ./data/db2::/database
+      - ./data/db2:/database
   mssql:
     image: mcr.microsoft.com/mssql/server:2019-CU14-ubuntu-20.04
     environment:

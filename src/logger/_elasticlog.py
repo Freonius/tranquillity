@@ -27,8 +27,8 @@ class ElasticLogHandler(ILogHandler):
     def __init__(self, settings: ISettings):
         super().__init__(settings)
         self._client = AsyncElasticsearch(
-            self._settings.get('conn.elasticsearch.host', 'es') +
-            ':' + str(self._settings.get('conn.elasticsearch.port', '9200')))
+            self._settings.get_ns('conn.elasticsearch.host') + ':' +
+            str(self._settings.get_ns('conn.elasticsearch.port')))
 
     def _custom_emit(self, record: CustomLogRecord) -> None:
         async def _asemit(record: CustomLogRecord, index: str, client: AsyncElasticsearch):
@@ -36,8 +36,8 @@ class ElasticLogHandler(ILogHandler):
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(_asemit(record,
-                                        self._settings.get(
-                                            'log.loggers.elasticsearch.index', 'logs'),
+                                        self._settings.get_ns(
+                                            'log.loggers.elasticsearch.index'),
                                         self._client))
 
     # pylint: disable=too-many-arguments,too-many-branches

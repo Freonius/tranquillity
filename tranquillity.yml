@@ -5,6 +5,7 @@ app:
     qa: http://presidents-example-tranquillity-qa.com
     dev: http://presidents-example-tranquillity-dev.com
     prod: http://presidents-example-tranquillity.com
+  port: 8888
 
 conn:
   mongo:

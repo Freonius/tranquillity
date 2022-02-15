@@ -1,10 +1,19 @@
-from typing import Callable, Dict, List, Tuple, Type, Union, Any
+from typing import Callable, Dict, List, Tuple, Type, Union, Any, Iterable
 from json import dumps
+from bson import ObjectId
 from ._enums import QueryComparison, QueryJoin, QueryType, SqlDialect
 from ._values import QWhereV, QWhereVR
-from ._utils import _fld2sql, _val2sql
+from ._utils import _fld2sql, _val2sql, type_to_querytype
 from ._dataclasses import WhereCondition
 from ._exceptions import QueryFormatError
+
+
+def _id2wc(field: str, value: Union[int, str, ObjectId, None]) -> WhereCondition:
+    return WhereCondition(
+        join=QueryJoin.And,
+        field=field,
+        type=type_to_querytype(type(value), False),
+        comparison=QueryComparison.Eq, value=QWhereV(value))
 
 
 def _nest_where(data: List[Union[QueryJoin, str, QueryType,
@@ -196,7 +205,7 @@ def _wc2sql(wcs: List, dialect: SqlDialect, prev_data: Union[Dict[str, str], Non
 
 def _wc2es(wcs: List, prev_data: Union[Dict[str, str], None] = None, prev_list_data: Union[List[str], None] = None) -> Tuple[str, Dict[str, str], Tuple[str, ...]]:
     if len(wcs) == 0 and prev_data is None and prev_list_data is None:
-        return dumps({'query': {'match_all': {}}}), {}, ()
+        return dumps({'match_all': {}}), {}, ()
     if len(wcs) == 1 and isinstance(wcs[0], WhereCondition):
         pass
     _wcs: List[WhereCondition] = []
@@ -309,3 +318,5 @@ def _wc2es(wcs: List, prev_data: Union[Dict[str, str], None] = None, prev_list_d
             _add_query(_query, 'should_not')
 
     del _check_should_not, _check_must, _check_must_not, _check_should, _add_query
+
+    return dumps(_query), {}, ()
