@@ -107,8 +107,11 @@ class Rabbit(IConnection):
     def select(self, t: Type[T], /, id: IdType = None, where: WhereType = None) -> Iterator[T]:
         raise NotAllowedOperation
 
-    def deltete(self, obj: T) -> bool:
+    def delete_where(self, t: Type[T], /, id: IdType = None, where: WhereType = None) -> int:
         raise NotAllowedOperation
 
-    def delete_where(self, t: Type[T], /, id: IdType = None, where: WhereType = None) -> int:
+    def create_table(self, t: Type[T]) -> bool:
+        raise NotAllowedOperation
+
+    def drop_table(self, t: Type[T]) -> bool:
         raise NotAllowedOperation

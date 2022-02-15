@@ -6,6 +6,7 @@ from logging import Logger
 from types import TracebackType
 from abc import ABC, abstractmethod
 from bson import ObjectId
+from ..exceptions import NotAllowedOperation
 from ..query._dataclasses import WhereCondition
 from ..settings import ISettings, Yaml, KVSetting
 from .__alias import T, IdType, WhereType
@@ -133,13 +134,22 @@ class IConnection(ABC):
                where: WhereType = None) -> Tuple[Union[T, None], bool]:
         pass
 
-    @abstractmethod
     def delete(self, obj: T) -> bool:
-        pass
+        if (_id := obj.get_id()) is None:
+            raise NotAllowedOperation('Object must have an id')
+        return self.delete_where(type(obj), id=_id) == 1
 
     @abstractmethod
     def delete_where(self, t: Type[T],
                      /,
                      id: IdType = None,
                      where: WhereType = None) -> int:
+        pass
+
+    @abstractmethod
+    def create_table(self, t: Type[T]) -> bool:
+        pass
+
+    @abstractmethod
+    def drop_table(self, t: Type[T]) -> bool:
         pass

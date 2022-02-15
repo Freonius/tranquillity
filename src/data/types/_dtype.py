@@ -115,23 +115,20 @@ class DType(ABC, Generic[T]):
     def is_primary_key(self) -> bool:
         return self._is_id
 
-    def __eq__(self, __o: object) -> Union[Callable[[IConnection], WhereCondition], bool]: # type: ignore
-        def where(conn_type: IConnection) -> WhereCondition:
-            _wc: WhereCondition = WhereCondition(
-                join=QueryJoin.And,
-                field=self.field,
-                type=type_to_querytype(self._t, self.is_list),
-                comparison=QueryComparison.Eq,
-                value=QWhereV(__o)
-            )
-            
-            return _wc
-
+    def __eq__(self, __o: object) -> Union[WhereCondition, bool]: # type: ignore
         if isinstance(__o, type(self)):
             if self.value == __o.value:
                 return True
             return False
-        return where
+        _wc: WhereCondition = WhereCondition(
+            join=QueryJoin.And,
+            field=self.field,
+            type=type_to_querytype(self._t, self.is_list),
+            comparison=QueryComparison.Eq,
+            value=QWhereV(__o)
+        )
+
+        return _wc
 
     def __ne__(self, __o: object) -> bool:
         if self == __o:

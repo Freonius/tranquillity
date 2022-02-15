@@ -36,7 +36,7 @@ def _date2sql(dt: Union[date, datetime, time], dialect: SqlDialect) -> str:
         raise NotImplementedError
 
 
-def _val2sql(val: Union[None, str, date, datetime, time, int, float], dialect: SqlDialect) -> str:
+def _val2sql(val: Union[None, str, date, datetime, time, int, float, object], dialect: SqlDialect) -> str:
     if val is None:
         return ''
     if isinstance(val, (float, int, str)):
@@ -53,3 +53,15 @@ def _fld2sql(fld: str, dialect: SqlDialect) -> str:
 
 def _tbl2sql(tbl: Table, dialect: SqlDialect) -> str:
     raise NotImplementedError
+
+
+def _t2esm(t: Type) -> str:
+    if t is str:
+        return 'text'
+    if t is int:
+        return 'integer'
+    if t is float:
+        return 'float'
+    if t is datetime:
+        return 'datetime'
+    return 'object'

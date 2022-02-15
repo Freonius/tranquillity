@@ -14,14 +14,15 @@ from sqlalchemy.engine import Engine, Connection
 from sqlalchemy.schema import MetaData
 from pandas import Series, DataFrame
 from numpy import dtype
-from tornado.web import RequestHandler
+from tornado.web import RequestHandler, HTTPError
 from tornado.escape import json_decode
 from bson import ObjectId
 from .types._dtype import DType
-from .types._id import Id, MongoId
+from .types._id import Id, MongoId, StrId
 from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError, ConnectionException
 from ..settings.__interface import ISettings
+from ..query._where import WhereCondition
 
 if TYPE_CHECKING is True:
     from ..connections.__interface import IConnection
@@ -52,7 +53,7 @@ class DataObject(ABC):
     def get_table(cls: Type[T]) -> str:
         _t: str
         if cls.__table__ is None or isinstance(cls.__table__, NotImplementedType):
-            _t = cls.__name__
+            _t = cls.__name__.lower()
         else:
             _t = cls.__table__
         if cls.__schema__ is None:
@@ -153,11 +154,13 @@ class DataObject(ABC):
         except ValidationError:
             return False
 
-    def to_json(self) -> str:
+    def to_json(self, dump: bool = True) -> Union[str, Dict[str, Any]]:
         out: Dict[str, Any] = {}
         for _, fld in self.__data__.items():
             out[fld.json_field] = fld.serialize()
-        return dumps(out, indent=None)
+        if dump is True:
+            return dumps(out, indent=None)
+        return out
 
     @classmethod
     def from_json(cls: Type[T], body: str) -> T:
@@ -202,10 +205,34 @@ class DataObject(ABC):
         self[key] = val
 
     @classmethod
-    def create_table(cls) -> bool:
-        raise NotImplementedError
+    def create_table(cls: Type[T]) -> bool:
+        if cls.__conn__ is None:
+            raise Exception
+        _conn: 'IConnection'
+        if isinstance(cls.__conn__, type):
+            _conn = cls.__conn__(cls.__settings__)
+        else:
+            _conn = cls.__conn__
+        _out: bool = False
+        with _conn:
+            _out = _conn.create_table(cls)
+        return _out
 
-    def add_to_db(self, mode: str = 'upsert') -> bool:
+    @classmethod
+    def drop_table(cls: Type[T]) -> bool:
+        if cls.__conn__ is None:
+            raise Exception
+        _conn: 'IConnection'
+        if isinstance(cls.__conn__, type):
+            _conn = cls.__conn__(cls.__settings__)
+        else:
+            _conn = cls.__conn__
+        _out: bool = False
+        with _conn:
+            _out = _conn.drop_table(cls)
+        return _out
+
+    def add_to_db(self: T, mode: str = 'upsert') -> bool:
         if self.__conn__ is None:
             raise Exception
         _conn: 'IConnection'
@@ -213,34 +240,86 @@ class DataObject(ABC):
             _conn = self.__conn__(self.__settings__)
         else:
             _conn = self.__conn__
+        _res: Tuple[Union[T, None], Any, bool] = (None, None, False)
         with _conn:
-            raise NotImplementedError
+            if mode == 'insert' or (mode == 'upsert' and self.get_id() is None):
+                _res = _conn.insert(self)
+            elif mode == 'update' or (mode == 'upsert' and self.get_id() is not None):
+                _, _success = _conn.update(self, id=self.get_id())
+                _res = (None, None, _success)
+        if _res[1] is not None:
+            self.set_id(_res[1])
+        return _res[2]
 
     def add_to_cache(self) -> bool:
         raise NotImplementedError
 
     def get_id(self) -> Union[int, ObjectId, str, None]:
-        for _, dty in self.get_fields():
-            if isinstance(dty, (Id, MongoId)):
-                return dty.value
+        for _key in self.__data__.keys():
+            if isinstance(self.__data__[_key], (Id, MongoId, StrId)):
+                return self.__data__[_key].value
         return None
 
     def set_id(self, id: Union[int, ObjectId, str, None]) -> None:
-        for _, dty in self.get_fields():
-            if isinstance(dty, (Id, MongoId)):
-                dty.value = id
+        for _key in self.__data__.keys():
+            if isinstance(self.__data__[_key], (Id, MongoId, StrId)):
+                self.__data__[_key].value = id
                 return
 
     @classmethod
-    def get_from_db(cls: Type[T], id: Union[int, str, None] = None, where_conditions: Union[Iterable[str], None] = None) -> List[T]:
-        raise NotImplementedError
+    def get_id_field(cls: Type[T]) -> Union[str, None]:
+        for _, dty in cls.get_fields():
+            if isinstance(dty, (Id, MongoId, StrId)):
+                return dty.field
+        return None
+
+    @classmethod
+    def get_from_db(cls: Type[T], id: Union[int, str, None] = None, where: Union[List[WhereCondition], WhereCondition, None] = None) -> Iterator[T]:
+        if cls.__conn__ is None:
+            raise Exception
+        _conn: 'IConnection'
+        if isinstance(cls.__conn__, type):
+            _conn = cls.__conn__(cls.__settings__)
+        else:
+            _conn = cls.__conn__
+        if isinstance(where, WhereCondition):
+            where = [where]
+        with _conn:
+            for t in _conn.select(cls, id=id, where=where):
+                yield t
 
     @classmethod
     def get_from_cache(cls: Type[T], id: Union[int, str, None] = None, where_conditions: Union[Iterable[str], None] = None) -> List[T]:
         raise NotImplementedError
 
     def delete_from_db(self) -> bool:
-        raise NotImplementedError
+        if self.__conn__ is None:
+            raise Exception
+        _conn: 'IConnection'
+        if isinstance(self.__conn__, type):
+            _conn = self.__conn__(self.__settings__)
+        else:
+            _conn = self.__conn__
+        _res: bool = False
+        with _conn:
+            _res = _conn.delete(self)
+        return _res
+
+    @classmethod
+    def delete_from_db_where(cls: Type[T], id: Union[int, str, None] = None, where: Union[List[WhereCondition], WhereCondition, None] = None) -> int:
+        if cls.__conn__ is None:
+            raise Exception
+        _conn: 'IConnection'
+        if isinstance(cls.__conn__, type):
+            _conn = cls.__conn__(cls.__settings__)
+        else:
+            _conn = cls.__conn__
+        if isinstance(where, WhereCondition):
+            where = [where]
+        _out: int = 0
+        with _conn:
+            _out = _conn.delete_where(cls, id=id, where=where)
+        return _out
 
     def delete_from_cache(self) -> bool:
         raise NotImplementedError
@@ -286,8 +365,25 @@ class DataObject(ABC):
     @classmethod
     def to_es_mapping(cls) -> Dict[str, Dict[str, Dict[str, Dict[str, str]]]]:
         def _to_es_type(x: DType) -> Dict[str, str]:
-            return {'type': 'keyword'}    # TODO
-        return {'mappings': {'properties': {x.field: _to_es_type(x) for _, x in cls.get_fields()}}}
+            _t: str = 'text'
+            if x.get_type() is str:
+                _t = 'text'
+            if x.get_type() is int:
+                _t = 'integer'
+            if x.get_type() is float:
+                _t = 'float'
+            if x.get_type() is datetime or x.get_type() is date:
+                _t = 'date'
+            if x.is_dict is True:
+                _t = 'nested'
+
+            return {'type': _t}    # TODO
+        _tps: List[DType] = []
+        for _, _tp in cls.get_fields():
+            if _tp.field == '_id':
+                continue
+            _tps.append(_tp)
+        return {'mappings': {'properties': {x.field: _to_es_type(x) for x in _tps}}}
 
     @classmethod
     def to_df(cls: Type[T], objects: Iterable[T]) -> DataFrame:
@@ -354,7 +450,7 @@ class DataObject(ABC):
                                 _msg = str(x)
                 self.write({'result': None, 'success': False, 'status_code': status_code,
                             'message': _msg, 'datetime': datetime.now().isoformat()})
-                self.set_status(500)
+                self.set_status(status_code)
 
             def get(self, id: Union[int, str, None]):
                 self.add_header('Content-Type', 'application/json')
@@ -364,27 +460,56 @@ class DataObject(ABC):
                     raise ConnectionException('No db connection')
                 conditions = []
 
-                for fld, dty in self.__object__.get_fields():
-                    if id is not None and isinstance(dty, (Id, MongoId)):
-                        conditions.append(
-                            eval(f'self.__object__.{fld}') == id)
-                        continue
+                for fld, _ in self.__object__.get_fields():
                     if fld in self.request.arguments.keys():
                         conditions.append(
                             eval(f'self.__object__.{fld}') == self.get_argument(fld))
                         continue
-                if self.__object__.__conn__ is None:
-                    self.write({'result': [x(1) for x in conditions], 'success': True, 'status_code': 200,
-                               'message': 'OK', 'datetime': datetime.now().isoformat()})
-                    self.set_status(200)
-                    return
-                # TODO: Actual return
+                _out: List[T] = list(
+                    self.__object__.get_from_db(id=id, where=conditions))
+                if id is not None and len(_out) == 0:
+                    raise HTTPError(status_code=404)
+                _res: Any = list([x.to_json(False) for x in _out])
+                if id is not None:
+                    _res = _res[0]
+                self.write({'result': _res, 'success': True, 'status_code': 200,
+                            'message': 'OK', 'datetime': datetime.now().isoformat()})
+                self.set_status(200)
+                return
 
             def post(self, id: Union[int, str, None] = None):
                 _data = json_decode(self.request.body)
+                if not isinstance(_data, dict):
+                    raise TypeError('Body is not a dict')
                 _obj: T = self.__object__(**_data)
-                self.write({'result': _obj.to_dict(), 'success': True, 'status_code': 200,
+                _obj.add_to_db()
+                self.write({'result': _obj.to_json(False), 'success': True, 'status_code': 200,
                             'msg': 'OK', 'datetime': datetime.now().isoformat()})
                 self.set_status(200)
+
+            def put(self, id: Union[int, str, None] = None):
+                _data = json_decode(self.request.body)
+                if not isinstance(_data, dict):
+                    raise TypeError('Body is not a dict')
+                if id is None:
+                    raise HTTPError(405)
+                _obj: T = self.__object__(
+                    **_data, **{str(self.__object__.get_id_field()): id})
+                _obj.add_to_db()
+                self.write({'result': _obj.to_json(False), 'success': True, 'status_code': 200,
+                            'msg': 'OK', 'datetime': datetime.now().isoformat()})
+                self.set_status(200)
+
+            def delete(self, id: Union[int, str, None] = None):
+                if id is None:
+                    raise HTTPError(405)
+                _success = self.__object__.delete_from_db_where(id=id)
+                if _success == 0:
+                    raise HTTPError(404)
+                self.write({'result': None, 'success': True, 'status_code': 200,
+                            'msg': 'OK', 'datetime': datetime.now().isoformat()})
+                self.set_status(200)
+
+        cls.create_table()
 
         return (cls.__urlprefix__ + cls.__name__.lower() + r'/?([^/]+)?/?', DataRequest)
