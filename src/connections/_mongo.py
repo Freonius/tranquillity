@@ -1,13 +1,14 @@
 '''
 Module for Mongo operations
 '''
-from typing import Callable, Set, Union
+from typing import Callable, Set, Union, Iterator, Tuple, Type
 from urllib.parse import quote_plus
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from pymongo.database import Database
 from ..exceptions import ConnectionException
 from .__interface import IConnection
+from .__alias import T, IdType, WhereType
 
 
 class Mongo(IConnection):
@@ -86,9 +87,20 @@ class Mongo(IConnection):
             raise ConnectionError
         return self._client
 
+    def select(self, t: Type[T], /, id: IdType = None, where: WhereType = None) -> Iterator[T]:
+        return super().select(t, id, where)
 
-if __name__ == '__main__':
-    m = Mongo()
-    with m:
-        print(m.is_connected)
-        m.client
+    def delete_where(self, t: Type[T], /, id: IdType = None, where: WhereType = None) -> int:
+        return super().delete_where(t, id, where)
+
+    def insert(self, obj: T) -> Tuple[Union[T, None], IdType, bool]:
+        return super().insert(obj)
+
+    def update(self, obj: T, /, id: IdType = None, where: WhereType = None) -> Tuple[Union[T, None], bool]:
+        return super().update(obj, id, where)
+
+    def create_table(self, t: Type[T]) -> bool:
+        return super().create_table(t)
+
+    def drop_table(self, t: Type[T]) -> bool:
+        return super().drop_table(t)
