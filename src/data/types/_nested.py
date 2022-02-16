@@ -1,4 +1,7 @@
 from typing import Any, Iterator, Tuple, TypeVar, Generic, Type, Union, Dict as TDict
+from sqlalchemy.types import JSON
+from sqlalchemy import Column
+from graphene import NonNull
 from ._dtype import DType
 from ._nsdtype import NSDType
 from .._dataobject import DataObject
@@ -25,8 +28,15 @@ class Dict(DType[dict]):
         super().__init__(field, value, is_id, required, default, nullable, json_field)
 
     def _ggt(self) -> Any:
-        # TODO
-        return super()._ggt()
+        raise NotADirectoryError
+
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, JSON,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
 
 
 class NSDict(NSDType[dict]):
@@ -47,16 +57,36 @@ class NSDict(NSDType[dict]):
         super().__init__(field, value, is_id, required, default, json_field)
 
     def _ggt(self) -> Any:
-        # TODO
-        return super()._ggt()
+        raise NotADirectoryError
+
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, JSON,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
 
 
 class Nested(DType[T], Generic[T]):
     _is_dict = True
 
-    def __init__(self, t: Type[T], field: Union[str, None] = None, value: Union[T, None] = None, is_id: bool = False, required: bool = True, default: Union[T, None] = None, nullable: bool = True, json_field: Union[str, None] = None) -> None:
+    def __init__(self,
+                 t: Type[T],
+                 value: Union[T, None] = None,
+                 *,
+                 field: Union[str, None] = None,
+                 is_id: bool = False,
+                 required: bool = True,
+                 default: Union[T, None] = None,
+                 nullable: bool = True,
+                 json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         self._t = t
-        super().__init__(field, value, is_id, required, default, nullable, json_field)
+        super().__init__(field, value, is_id, required, default,
+                         nullable, json_field, indexable, filterable, exclude)
 
     def __iter__(self) -> Iterator[Tuple[str, Any]]:
         if self._value is not None:
@@ -69,16 +99,35 @@ class Nested(DType[T], Generic[T]):
         return self._value.to_dict()
 
     def _ggt(self) -> Any:
-        # TODO
-        return super()._ggt()
+        return self._t.to_graphql()
+
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, JSON,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
 
 
 class NSNested(NSDType[T], Generic[T]):
     _is_dict = True
 
-    def __init__(self, t: Type[T], field: Union[str, None] = None, value: Union[T, None] = None, is_id: bool = False, required: bool = True, default: Union[T, None] = None, json_field: Union[str, None] = None) -> None:
+    def __init__(self,
+                 t: Type[T],
+                 value: Union[T, None] = None,
+                 *,
+                 field: Union[str, None] = None,
+                 is_id: bool = False,
+                 required: bool = True,
+                 default: Union[T, None] = None,
+                 json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         self._t = t
-        super().__init__(field, value, is_id, required, default, json_field)
+        super().__init__(field, value, is_id, required, default,
+                         json_field, indexable, filterable, exclude)
 
     def __iter__(self) -> Iterator[Tuple[str, Any]]:
         if self._value is not None:
@@ -91,5 +140,12 @@ class NSNested(NSDType[T], Generic[T]):
         return self._value.to_dict()
 
     def _ggt(self) -> Any:
-        # TODO
-        return super()._ggt()
+        return lambda **kwargs: NonNull(self._t.to_graphql(), **kwargs)
+
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, JSON,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )

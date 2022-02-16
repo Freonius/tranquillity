@@ -134,7 +134,7 @@ class Elasticsearch(IConnection):
             return 0
         return _out
 
-    def add_mapping(self, index: str, mapping: Dict[str, Dict[str, Dict[str, Dict[str, str]]]]) -> bool:
+    def add_mapping(self, index: str, mapping: Dict[str, Dict[str, Dict[str, Dict[str, Union[str, bool]]]]]) -> bool:
         _res = self.client.indices.create(
             index=index,
             body=mapping,

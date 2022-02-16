@@ -44,7 +44,10 @@ class NSDType(DType[T], Generic[T]):
                  is_id: bool = False,
                  required: bool = True,
                  default: Union[T, None] = None,
-                 json_field: Union[str, None] = None) -> None:
+                 json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         if field is not None:
             self._field = field
         self._is_id = is_id
@@ -53,6 +56,9 @@ class NSDType(DType[T], Generic[T]):
         self._json_field = json_field
         if value is not None:
             self.value = value
+        self._exclude_from_json = exclude
+        self._is_filterable = filterable
+        self._is_indexable = indexable
 
     def _ggt(self) -> Type[Field]:
         raise NotImplementedError

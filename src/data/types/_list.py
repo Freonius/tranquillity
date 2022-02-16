@@ -1,4 +1,8 @@
 from typing import Generic, TypeVar, Type, Iterable, Union, List as TList, Any
+from sqlalchemy.types import ARRAY
+from sqlalchemy import Column
+from graphene import List as GList
+from typing_utils import issubtype
 from ._dtype import DType
 from ._nested import Nested, Dict
 from ._array import Array
@@ -12,11 +16,27 @@ class List(DType[Array[T]], Generic[T]):
     _is_list = True
     _sub_t: Type[T]
 
-    def __init__(self, t: Type[T], field: Union[str, None] = None, value: Union[Array[T], None] = None, is_id: bool = False, required: bool = True, default: Union[Array[T], None] = None, nullable: bool = True, json_field: Union[str, None] = None) -> None:
+    def get_type(self) -> Type[T]:  # type: ignore
+        return self._sub_t
+
+    def __init__(self,
+                 t: Type[T],
+                 value: Union[Array[T], None] = None,
+                 *,
+                 field: Union[str, None] = None,
+                 is_id: bool = False,
+                 required: bool = True,
+                 default: Union[Array[T], None] = None,
+                 nullable: bool = True,
+                 json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         self._t = Array
         self._sub_t = t
         self.value = value
-        super().__init__(field, value, is_id, required, default, nullable, json_field)
+        super().__init__(field, value, is_id, required, default,
+                         nullable, json_field, indexable, filterable, exclude)
 
     def to_list(self) -> Union[TList, None]:
         if self._value is None:
@@ -24,7 +44,7 @@ class List(DType[Array[T]], Generic[T]):
         _out: TList[Any] = []
         for x in self._value:
             if isinstance(x, (DataObject, Nested, Dict)):
-                _out.append(x.to_dict())
+                _out.append(x.serialize())
             elif isinstance(x, type(self)):
                 _out.append(x.to_list())
             else:
@@ -42,7 +62,19 @@ class List(DType[Array[T]], Generic[T]):
         if val is None and self._nullable is False:
             raise ValueError
         if isinstance(val, list):
-            val = Array(self._sub_t, val)
+            _temp_val: TList[Any] = []
+            if issubtype(self._sub_t, DataObject):
+                for v in val:
+                    if isinstance(v, DataObject):
+                        _temp_val.append(v)
+                    elif isinstance(v, dict):
+                        _temp_val.append(self._sub_t(**v))
+                    else:
+                        raise TypeError
+            else:
+                _temp_val = val
+            val = Array(self._sub_t, _temp_val)
+            del _temp_val
         if not isinstance(val, self._t) and val is not None:
             raise TypeError
         if val is not None and val.get_generic is not self._sub_t:
@@ -58,3 +90,14 @@ class List(DType[Array[T]], Generic[T]):
         if self._value is None:
             self._value = Array(self._sub_t)
         self._value.extend(vals)
+
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, ARRAY(self._sub_t),
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
+
+    def _ggt(self) -> Any:
+        return lambda **kwargs: GList(self._sub_t, **kwargs)

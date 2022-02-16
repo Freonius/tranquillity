@@ -18,6 +18,7 @@ from numpy import dtype
 from tornado.web import RequestHandler, HTTPError
 from tornado.escape import json_decode
 from bson import ObjectId
+from typing_utils import issubtype
 from .types._dtype import DType
 from .types._id import Id, MongoId, StrId
 from ..utils._classproperty import classproperty
@@ -41,6 +42,12 @@ class DataObject(ABC):
     __conn__: Union['IConnection', None, Type['IConnection']] = None
     __urlprefix__: str = r'/api/v1/'
     __settings__: Union[ISettings, None] = None
+    __permissions__: Dict[str, str] = {
+        'GET': 'public',
+        'POST': 'public',
+        'PUT': 'public',
+        'DELETE': 'public'
+    }
 
     def __init__(self: T, **data) -> None:
         # TODO: Get things from isettings
@@ -50,6 +57,16 @@ class DataObject(ABC):
         for key, val in data.items():
             self[key] = val
         # self.validate()
+
+    @classmethod
+    def set_permission(cls: Type[T], method: str, permission: str) -> None:
+        method = method.strip().upper()
+        permission = permission.strip().lower()
+        if permission not in ('public', 'user', 'admin', 'sa'):
+            raise ValueError
+        if method not in ('GET', 'POST', 'PUT', 'DELETE'):
+            raise ValueError
+        cls.__permissions__[method] = permission
 
     @classmethod
     def get_table(cls: Type[T]) -> str:
@@ -103,6 +120,8 @@ class DataObject(ABC):
         return type('GQL' + self.__class__.__name__, (ObjectType,), attr)
 
     def serialize(self) -> Dict[str, Any]:
+        if isinstance((_out := self.to_json(False)), dict):
+            return _out
         return self.to_dict()
 
     @classmethod
@@ -159,6 +178,8 @@ class DataObject(ABC):
     def to_json(self, dump: bool = True) -> Union[str, Dict[str, Any]]:
         out: Dict[str, Any] = {}
         for _, fld in self.__data__.items():
+            if fld.exclude_from_json is True:
+                continue
             out[fld.json_field] = fld.serialize()
         if dump is True:
             return dumps(out, indent=None)
@@ -207,6 +228,20 @@ class DataObject(ABC):
         self[key] = val
 
     @classmethod
+    def get_connection(cls: Type[T]) -> 'IConnection':
+        if cls.__conn__ is None:
+            raise Exception
+        _conn: 'IConnection'
+        if isinstance(cls.__conn__, type):
+            _conn = cls.__conn__(cls.__settings__)
+            cls.__conn__ = _conn
+        else:
+            _conn = cls.__conn__
+        if not _conn.is_connected:
+            _conn.connect()
+        return _conn
+
+    @classmethod
     def create_table(cls: Type[T]) -> bool:
         if cls.__conn__ is None:
             raise Exception
@@ -216,39 +251,26 @@ class DataObject(ABC):
         else:
             _conn = cls.__conn__
         _out: bool = False
-        with _conn:
-            _out = _conn.create_table(cls)
+        if not _conn.is_connected:
+            _conn.connect()
+        _out = _conn.create_table(cls)
         return _out
 
     @classmethod
     def drop_table(cls: Type[T]) -> bool:
-        if cls.__conn__ is None:
-            raise Exception
-        _conn: 'IConnection'
-        if isinstance(cls.__conn__, type):
-            _conn = cls.__conn__(cls.__settings__)
-        else:
-            _conn = cls.__conn__
+        _conn: 'IConnection' = cls.get_connection()
         _out: bool = False
-        with _conn:
-            _out = _conn.drop_table(cls)
+        _out = _conn.drop_table(cls)
         return _out
 
     def add_to_db(self: T, mode: str = 'upsert') -> bool:
-        if self.__conn__ is None:
-            raise Exception
-        _conn: 'IConnection'
-        if isinstance(self.__conn__, type):
-            _conn = self.__conn__(self.__settings__)
-        else:
-            _conn = self.__conn__
+        _conn: 'IConnection' = self.get_connection()
         _res: Tuple[Union[T, None], Any, bool] = (None, None, False)
-        with _conn:
-            if mode == 'insert' or (mode == 'upsert' and self.get_id() is None):
-                _res = _conn.insert(self)
-            elif mode == 'update' or (mode == 'upsert' and self.get_id() is not None):
-                _, _success = _conn.update(self, id=self.get_id())
-                _res = (None, None, _success)
+        if mode == 'insert' or (mode == 'upsert' and self.get_id() is None):
+            _res = _conn.insert(self)
+        elif mode == 'update' or (mode == 'upsert' and self.get_id() is not None):
+            _, _success = _conn.update(self, id=self.get_id())
+            _res = (None, None, _success)
         if _res[1] is not None:
             self.set_id(_res[1])
         return _res[2]
@@ -277,50 +299,29 @@ class DataObject(ABC):
 
     @classmethod
     def get_from_db(cls: Type[T], id: Union[int, str, None] = None, where: Union[List[WhereCondition], WhereCondition, None] = None) -> Iterator[T]:
-        if cls.__conn__ is None:
-            raise Exception
-        _conn: 'IConnection'
-        if isinstance(cls.__conn__, type):
-            _conn = cls.__conn__(cls.__settings__)
-        else:
-            _conn = cls.__conn__
+        _conn: 'IConnection' = cls.get_connection()
         if isinstance(where, WhereCondition):
             where = [where]
-        with _conn:
-            for t in _conn.select(cls, id=id, where=where):
-                yield t
+        for t in _conn.select(cls, id=id, where=where):
+            yield t
 
     @classmethod
     def get_from_cache(cls: Type[T], id: Union[int, str, None] = None, where_conditions: Union[Iterable[str], None] = None) -> List[T]:
         raise NotImplementedError
 
     def delete_from_db(self) -> bool:
-        if self.__conn__ is None:
-            raise Exception
-        _conn: 'IConnection'
-        if isinstance(self.__conn__, type):
-            _conn = self.__conn__(self.__settings__)
-        else:
-            _conn = self.__conn__
+        _conn: 'IConnection' = self.get_connection()
         _res: bool = False
-        with _conn:
-            _res = _conn.delete(self)
+        _res = _conn.delete(self)
         return _res
 
     @classmethod
     def delete_from_db_where(cls: Type[T], id: Union[int, str, None] = None, where: Union[List[WhereCondition], WhereCondition, None] = None) -> int:
-        if cls.__conn__ is None:
-            raise Exception
-        _conn: 'IConnection'
-        if isinstance(cls.__conn__, type):
-            _conn = cls.__conn__(cls.__settings__)
-        else:
-            _conn = cls.__conn__
+        _conn: 'IConnection' = cls.get_connection()
         if isinstance(where, WhereCondition):
             where = [where]
         _out: int = 0
-        with _conn:
-            _out = _conn.delete_where(cls, id=id, where=where)
+        _out = _conn.delete_where(cls, id=id, where=where)
         return _out
 
     def delete_from_cache(self) -> bool:
@@ -365,8 +366,8 @@ class DataObject(ABC):
         return True
 
     @classmethod
-    def to_es_mapping(cls) -> Dict[str, Dict[str, Dict[str, Dict[str, str]]]]:
-        def _to_es_type(x: DType) -> Dict[str, str]:
+    def to_es_mapping(cls: Type[T]) -> Dict[str, Dict[str, Dict[str, Dict[str, Union[str, bool]]]]]:
+        def _to_es_type(x: DType) -> Dict[str, Union[str, bool]]:
             _t: str = 'text'
             if x.get_type() is str:
                 _t = 'text'
@@ -376,10 +377,10 @@ class DataObject(ABC):
                 _t = 'float'
             if x.get_type() is datetime or x.get_type() is date:
                 _t = 'date'
-            if x.is_dict is True:
-                _t = 'nested'
+            if x.is_dict is True or issubtype(x.get_type(), cls.__base__):
+                return {'type': 'nested'}
 
-            return {'type': _t}    # TODO
+            return {'type': _t, 'index': x.is_indexable}    # TODO
         _tps: List[DType] = []
         for _, _tp in cls.get_fields():
             if _tp.field == '_id':
@@ -471,7 +472,7 @@ class DataObject(ABC):
                 if __debug__:
                     self._start = datetime.now()
                 if self._mylog is not None:
-                    self._mylog.info(f'Started request: [{_method}] {_uri}')
+                    self._mylog.debug(f'Started request: [{_method}] {_uri}')
                 return super().prepare()
 
             def on_finish(self) -> None:
@@ -487,7 +488,7 @@ class DataObject(ABC):
                         f'[{_method}] {_uri} Took {_ms * 0.001}ms')
                 if self._mylog is not None:
                     self._mylog.info(
-                        f'Finished request (status_code: {_sc}): [{_method}] {_uri}')
+                        f'{_sc} [{_method}] {_uri}')
                 return super().on_finish()
 
             def get(self, id: Union[int, str, None]):
@@ -497,8 +498,9 @@ class DataObject(ABC):
                     raise ConnectionException('No db connection')
                 conditions = []
 
-                for fld, _ in self.__object__.get_fields():
-                    if fld in self.request.arguments.keys():
+                for fld, dty in self.__object__.get_fields():
+                    if (fld in self.request.arguments.keys() or dty.json_field in self.request.arguments.keys()) \
+                            and dty.is_filterable is True:
                         conditions.append(
                             eval(f'self.__object__.{fld}') == self.get_argument(fld))
                         continue
@@ -519,6 +521,7 @@ class DataObject(ABC):
                 if not isinstance(_data, dict):
                     raise TypeError('Body is not a dict')
                 _obj: T = self.__object__(**_data)
+                _obj.validate()
                 _obj.add_to_db()
                 if __debug__ and self._mylog is not None:
                     self._mylog.debug(f'Added {_obj}')
@@ -534,6 +537,7 @@ class DataObject(ABC):
                     raise HTTPError(405)
                 _obj: T = self.__object__(
                     **_data, **{str(self.__object__.get_id_field()): id})
+                _obj.validate()
                 _obj.add_to_db()
                 if __debug__ and self._mylog is not None:
                     self._mylog.debug(f'Updated {_obj}')

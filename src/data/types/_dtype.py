@@ -7,7 +7,7 @@ from sqlalchemy import Column
 from ...exceptions import ValidationError
 from ...connections import IConnection
 from ...query._dataclasses import WhereCondition
-from ...query._values import QWhereV
+from ...query._values import QWhereV, QWhereVR
 from ...query._enums import QueryJoin, QueryComparison, QueryType
 from ...query._utils import type_to_querytype
 
@@ -26,6 +26,9 @@ class DType(ABC, Generic[T]):
     _is_dict: bool = False
     _is_list: bool = False
     _t: Type[T] = NotImplemented
+    _is_filterable: bool = True
+    _is_indexable: bool = True
+    _exclude_from_json: bool = False
 
     def get_type(self) -> Type[T]:
         return self._t
@@ -49,6 +52,18 @@ class DType(ABC, Generic[T]):
     @property
     def is_nullable(self) -> bool:
         return self._nullable
+
+    @property
+    def is_indexable(self) -> bool:
+        return self._is_indexable
+
+    @property
+    def is_filterable(self) -> bool:
+        return self._is_filterable
+
+    @property
+    def exclude_from_json(self) -> bool:
+        return self._exclude_from_json
 
     @property
     def json_field(self) -> str:
@@ -127,13 +142,85 @@ class DType(ABC, Generic[T]):
             comparison=QueryComparison.Eq,
             value=QWhereV(__o)
         )
-
         return _wc
 
-    def __ne__(self, __o: object) -> bool:
-        if self == __o:
+    def __ne__(self, __o: object) -> Union[WhereCondition, bool]: # type: ignore
+        if isinstance(__o, type(self)):
+            if self.value != __o.value:
+                return True
             return False
-        return True
+        _wc: WhereCondition = WhereCondition(
+            join=QueryJoin.And,
+            field=self.field,
+            type=type_to_querytype(self._t, self.is_list),
+            comparison=QueryComparison.Ne,
+            value=QWhereV(__o)
+        )
+        return _wc
+
+    def __gt__(self, __o: object) -> Union[WhereCondition, bool]: # type: ignore
+        if isinstance(__o, type(self)):
+            return False
+        _wc: WhereCondition = WhereCondition(
+            join=QueryJoin.And,
+            field=self.field,
+            type=type_to_querytype(self._t, self.is_list),
+            comparison=QueryComparison.Gt,
+            value=QWhereV(__o)
+        )
+        return _wc
+
+    def __ge__(self, __o: object) -> Union[WhereCondition, bool]: # type: ignore
+        if isinstance(__o, type(self)):
+            return False
+        _wc: WhereCondition = WhereCondition(
+            join=QueryJoin.And,
+            field=self.field,
+            type=type_to_querytype(self._t, self.is_list),
+            comparison=QueryComparison.Gte,
+            value=QWhereV(__o)
+        )
+        return _wc
+
+    def __lt__(self, __o: object) -> Union[WhereCondition, bool]: # type: ignore
+        if isinstance(__o, type(self)):
+            return False
+        _wc: WhereCondition = WhereCondition(
+            join=QueryJoin.And,
+            field=self.field,
+            type=type_to_querytype(self._t, self.is_list),
+            comparison=QueryComparison.Lt,
+            value=QWhereV(__o)
+        )
+        return _wc
+
+    def __le__(self, __o: object) -> Union[WhereCondition, bool]: # type: ignore
+        if isinstance(__o, type(self)):
+            return False
+        _wc: WhereCondition = WhereCondition(
+            join=QueryJoin.And,
+            field=self.field,
+            type=type_to_querytype(self._t, self.is_list),
+            comparison=QueryComparison.Lte,
+            value=QWhereV(__o)
+        )
+        return _wc
+
+    def __contains__(self, __o: object) -> Union[WhereCondition, bool]: # type: ignore
+        if isinstance(__o, type(self)):
+            return False
+        if not isinstance(__o, (list, tuple)):
+            raise TypeError
+        if len(__o) != 2:
+            raise TypeError
+        _wc: WhereCondition = WhereCondition(
+            join=QueryJoin.And,
+            field=self.field,
+            type=type_to_querytype(self._t, self.is_list),
+            comparison=QueryComparison.Between,
+            value=QWhereVR(__o[0], __o[1])
+        )
+        return _wc
 
     def __str__(self) -> str:
         return str(self.value)
@@ -168,7 +255,10 @@ class DType(ABC, Generic[T]):
                  required: bool = True,
                  default: Union[T, None] = None,
                  nullable: bool = True,
-                 json_field: Union[str, None] = None) -> None:
+                 json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         if field is not None:
             self._field = field
         self._is_id = is_id
@@ -177,6 +267,9 @@ class DType(ABC, Generic[T]):
         self._default = default
         self._nullable = nullable
         self._json_field = json_field
+        self._exclude_from_json = exclude
+        self._is_filterable = filterable
+        self._is_indexable = indexable
 
     def _more_validation(self) -> None:
         pass
