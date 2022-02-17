@@ -1,5 +1,5 @@
 from typing import Union, Tuple, Iterator, Type
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Table
 from sqlalchemy.engine import Engine, Connection
 from sqlalchemy.engine.url import URL
 from ..exceptions import ConnectionException
@@ -125,10 +125,14 @@ class Sql(IConnection):
         return super().insert(obj)
 
     def create_table(self, t: Type[T]) -> bool:
-        return super().create_table(t)
+        _t: Table = t.alchemy_table(self.client)
+        _t.create(self.client, checkfirst=True)
+        return _t.exists(self.client) is True
 
     def drop_table(self, t: Type[T]) -> bool:
-        return super().drop_table(t)
+        _t: Table = t.alchemy_table(self.client)
+        _t.drop(self.client, checkfirst=True)
+        return _t.exists(self.client) is False
 
     def migrate_table(self, t: Type[T]) -> bool:
         pass

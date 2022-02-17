@@ -120,9 +120,10 @@ class DataObject(ABC):
         return type('GQL' + self.__class__.__name__, (ObjectType,), attr)
 
     def serialize(self) -> Dict[str, Any]:
-        if isinstance((_out := self.to_json(False)), dict):
-            return _out
-        return self.to_dict()
+        out: Dict[str, Any] = {}
+        for _, fld in self.__data__.items():
+            out[fld.json_field] = fld.serialize()
+        return out
 
     @classmethod
     def _get_rule_engine_context(cls: Type[T]) -> Context:
