@@ -13,3 +13,4 @@ from ._redis import Redis
 from ._sqlite import Sqlite
 from ._sqlserver import SqlServer
 from ._zeromq import ZeroMq
+from ._sqlalchemy import Sql

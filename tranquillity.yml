@@ -40,6 +40,13 @@ conn:
     user: user
     password: password
     db: db
+  sql:
+    host: localhost
+    port: 5432
+    user: user
+    password: password
+    db: db
+    dialect: postgres
     
 
 log:
