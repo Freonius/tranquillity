@@ -125,6 +125,8 @@ class Mongo(IConnection):
         _res: InsertOneResult = _coll.insert_one(obj.serialize())
         _success: bool = _res.acknowledged
         _id: Union[ObjectId, None, List] = _res.inserted_id
+        if isinstance(_id, list) and len(_id) == 1 and all([isinstance(x, ObjectId) for x in _id]):
+            _id = _id[0]
         if not isinstance(_id, ObjectId):
             _id = None
         obj.set_id(_id)

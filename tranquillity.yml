@@ -34,6 +34,12 @@ conn:
     password: password
     protocol: http
     db: tq
+  postgres:
+    host: localhost
+    port: 5432
+    user: user
+    password: password
+    db: db
     
 
 log:
