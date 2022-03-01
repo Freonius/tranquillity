@@ -1,13 +1,14 @@
 
 from typing import Any, List, Union, Dict, Tuple, Iterator, Type
 from datetime import date, time, datetime
-from psycopg2 import connect
+from psycopg2 import connect, cursor
 from psycopg2._psycopg import connection
 from psycopg2.sql import SQL, Identifier
 from ..exceptions import ConnectionException
 from ..query._where import _id2wc, _wc2psql
 from .__interface import IConnection
 from .__alias import T, WhereType, IdType, WhereCondition
+from .__dataclasses import PgColumn
 
 
 class Postgres(IConnection):
@@ -81,7 +82,7 @@ class Postgres(IConnection):
             SQL(', '.join(['%s' for _ in range(len(_dict.keys()))])),
             Identifier(_id_field)
         )
-        _crs = self.client.cursor()
+        _crs: cursor = self.client.cursor()
         _crs.execute(_query, vars=tuple(_dict.values()))
         self.client.commit()
         _success: bool = _crs.rowcount == 1
@@ -105,8 +106,9 @@ class Postgres(IConnection):
         _id_field: Union[str, None] = obj.get_id_field()
         if id is not None and _id_field is not None:
             where.append(_id2wc(_id_field, id))
-        _lwc: List[Tuple[WhereCondition, bool, Tuple[Union[None, str, date, datetime,
-                                                           time, int, float, object], ...]]] = list([_wc2psql(x) for x in where])
+        _lwc: List[Tuple[WhereCondition, bool,
+                         Tuple[Union[None, str, date, datetime,
+                                     time, int, float, object], ...]]] = list([_wc2psql(x) for x in where])
 
         for _l in _lwc:
             if _l[1] is True:
@@ -120,7 +122,7 @@ class Postgres(IConnection):
             SQL('') if len(where) == 0 else SQL(' WHERE '),
             SQL(' AND ').join([x[0] for x in _lwc])
         )
-        _crs = self.client.cursor()
+        _crs: cursor = self.client.cursor()
         _crs.execute(_query, vars=tuple(_vars))
         self.client.commit()
         return obj, _crs.rowcount == 1
@@ -135,8 +137,9 @@ class Postgres(IConnection):
         _id_field: Union[str, None] = t.get_id_field()
         if id is not None and _id_field is not None:
             where.append(_id2wc(_id_field, id))
-        _lwc: List[Tuple[WhereCondition, bool, Tuple[Union[None, str, date, datetime,
-                                                           time, int, float, object], ...]]] = list([_wc2psql(x) for x in where])
+        _lwc: List[Tuple[WhereCondition, bool,
+                         Tuple[Union[None, str, date, datetime,
+                                     time, int, float, object], ...]]] = list([_wc2psql(x) for x in where])
         _vars: List[Union[None, str, date, datetime,
                           time, int, float, object]] = []
         for _l in _lwc:
@@ -150,7 +153,7 @@ class Postgres(IConnection):
             SQL('') if len(where) == 0 else SQL(' WHERE '),
             SQL(' AND ').join([x[0] for x in _lwc])
         )
-        _crs = self.client.cursor()
+        _crs: cursor = self.client.cursor()
         _crs.execute(_query, vars=tuple(_vars))
         for _res in _crs.fetchall():
             if len(_fields_str) == len(_res):
@@ -165,8 +168,9 @@ class Postgres(IConnection):
         _id_field: Union[str, None] = t.get_id_field()
         if id is not None and _id_field is not None:
             where.append(_id2wc(_id_field, id))
-        _lwc: List[Tuple[WhereCondition, bool, Tuple[Union[None, str, date, datetime,
-                                                           time, int, float, object], ...]]] = list([_wc2psql(x) for x in where])
+        _lwc: List[Tuple[WhereCondition, bool,
+                         Tuple[Union[None, str, date, datetime,
+                                     time, int, float, object], ...]]] = list([_wc2psql(x) for x in where])
         _vars: List[Union[None, str, date, datetime,
                           time, int, float, object]] = []
         for _l in _lwc:
@@ -179,7 +183,7 @@ class Postgres(IConnection):
             SQL('') if len(where) == 0 else SQL(' WHERE '),
             SQL(' AND ').join([x[0] for x in _lwc])
         )
-        _crs = self.client.cursor()
+        _crs: cursor = self.client.cursor()
         _crs.execute(_query, vars=tuple(_vars))
         self.client.commit()
         return int(_crs.rowcount)
@@ -189,3 +193,45 @@ class Postgres(IConnection):
 
     def drop_table(self, t: Type[T]) -> bool:
         return super().drop_table(t)
+
+    def describe_table(self, table: str, schema: str = 'public') -> List[PgColumn]:
+        _query: SQL = SQL('''SELECT
+                                column_name AS name,
+                                column_default AS default,
+                                CASE is_nullable WHEN 'YES' THEN TRUE ELSE FALSE END AS is_nullable,
+                                udt_name AS type,
+                                CASE is_identity WHEN 'YES' THEN TRUE ELSE FALSE END AS is_identity
+                            FROM
+                            information_schema.columns
+                            WHERE table_name = %s AND table_schema = %s;''')
+        _crs: cursor = self.client.cursor()
+        _crs.execute(_query, vars=(table, schema))
+        _out: List[PgColumn] = []
+        for _res in _crs.fetchall():
+            if not isinstance(_res, tuple) or len(_res) != 5:
+                continue
+            _name: Any = _res[0]
+            _default: Any = _res[1]
+            _is_nullable: Any = _res[2]
+            _type: Any = _res[3]
+            _is_identity: Any = _res[4]
+            if not isinstance(_name, str) or not isinstance(_type, str):
+                continue
+            if not isinstance(_is_identity, bool) or not isinstance(_is_nullable, bool):
+                continue
+            _out.append(PgColumn(_name, _default, _type,
+                        _is_nullable, _is_identity))
+        return _out
+
+    def table_exists(self, table: str, schema: str = 'public') -> bool:
+        _query: SQL = SQL('''SELECT
+                                CASE COUNT(*) WHEN 1 THEN TRUE ELSE FALSE END AS exists
+                            FROM information_schema.tables
+                            WHERE table_name = %s AND table_schema = %s;''')
+        _crs: cursor = self.client.cursor()
+        _crs.execute(_query, vars=(table, schema))
+        _res = _crs.fetchone()
+        _exists: bool = False
+        if isinstance(_res, tuple) and len(_res) > 0 and isinstance(_res[0], bool):
+            _exists = _res[0]
+        return _exists
