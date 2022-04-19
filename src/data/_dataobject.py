@@ -48,6 +48,7 @@ class DataObject(ABC):
         'PUT': 'public',
         'DELETE': 'public'
     }
+    __readonly__: bool = False
 
     def __init__(self: T, **data) -> None:
         # TODO: Get things from isettings

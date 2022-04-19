@@ -3,12 +3,16 @@
 """Module for shell utilities.
 
 """
-from typing import Any, Iterable, Union
+from typing import Any, Dict, Iterable, Union
 from dataclasses import dataclass
 from socket import gethostname, gethostbyname
 from subprocess import Popen, PIPE, STDOUT
 from binascii import unhexlify, Error
 from shlex import quote, join
+from socket import error
+from paramiko import SSHClient, BadHostKeyException, AuthenticationException, SSHException
+from paramiko.channel import ChannelStderrFile, ChannelFile
+from ..exceptions import SSHException as _SSHException
 
 
 @dataclass
@@ -93,3 +97,48 @@ class Shell:
                 return _container_id  # pragma: no cover
         except Error:
             return gethostbyname(gethostname())
+
+    @staticmethod
+    def ssh(host: str, cmd: str, *,
+            key: Union[str, None] = None,
+            port: int = 22,
+            passphrase: Union[str, None] = None,
+            username: Union[str, None] = None,
+            password: Union[str, None] = None,
+            env: Union[Dict[str, str], None] = None) -> ShellReturn:
+        """_summary_
+
+        Args:
+            host (str): _description_
+            cmd (str): _description_
+            key (Union[str, None], optional): _description_. Defaults to None.
+            port (int, optional): _description_. Defaults to 22.
+            passphrase (Union[str, None], optional): _description_. Defaults to None.
+            username (Union[str, None], optional): _description_. Defaults to None.
+            password (Union[str, None], optional): _description_. Defaults to None.
+            env (Union[Dict[str, str], None], optional): _description_. Defaults to None.
+
+        Raises:
+            _SSHException: _description_
+
+        Returns:
+            ShellReturn: _description_
+        """
+        _ssh: SSHClient = SSHClient()
+        try:
+            _ssh.connect(host,
+                         port=port,
+                         username=username,
+                         password=password,
+                         passphrase=passphrase,
+                         key_filename=key)
+            _stdout_channel: ChannelFile
+            _stderr_channel: ChannelStderrFile
+            _, _stdout_channel, _stderr_channel = _ssh.exec_command(
+                cmd, environment=env)
+            _stdout: str = ''.join(_stdout_channel.readlines())
+            _stderr: str = ''.join(_stderr_channel.readlines())
+            _ssh.close()
+            return ShellReturn(0, return_string=_stdout, stderr=_stderr)
+        except (error, BadHostKeyException, AuthenticationException, SSHException) as e:
+            raise _SSHException('Operation not completed') from e

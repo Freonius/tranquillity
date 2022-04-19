@@ -18,6 +18,10 @@ class ConversionError(ValueError):
     pass
 
 
+class SSHException(Exception):
+    pass
+
+
 class HttpException(Exception):
     _status_code: int = 500
 

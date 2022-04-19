@@ -1,4 +1,4 @@
-from typing import Type, Tuple, Iterator, List, Union, Dict
+from typing import Any, Type, Tuple, Iterator, List, Union, Dict
 from sqlite3 import Connection, connect, Cursor
 from ..exceptions import ConnectionException
 from .__interface import IConnection
@@ -27,7 +27,11 @@ class Sqlite(IConnection):
         self._client = None
 
     def insert(self, obj: T) -> Tuple[Union[T, None], IdType, bool]:
-        _crs: Cursor = self.client.execute('')
+        _data: Dict[str, Any] = obj.to_dict()
+        _tbl: str = obj.get_table()
+        _crs: Cursor = self.client.execute(
+            f'INSERT INTO {_tbl} ({", ".join(_data.keys())}) VALUES ({", ".join(["%s" for _ in _data.keys()])});',
+            tuple(_data.values()))
         _id: Union[int, str, None] = None
         _success: bool = _crs.rowcount == 1
         if not isinstance((_id := _crs.lastrowid), (int, str)):

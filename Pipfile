@@ -43,6 +43,7 @@ lxml = "*"
 pymssql = "*"
 requests = "*"
 urllib3 = "*"
+paramiko = "*"
 
 [dev-packages]
 pylint = "*"
