@@ -1,5 +1,5 @@
 
-from typing import Any, List, Union, Dict, Tuple, Iterator, Type
+from typing import Any, Callable, List, Union, Dict, Tuple, Iterator, Type, TYPE_CHECKING
 from datetime import date, time, datetime
 from psycopg2 import connect, cursor
 from psycopg2._psycopg import connection
@@ -9,6 +9,9 @@ from ..query._where import _id2wc, _wc2psql
 from .__interface import IConnection
 from .__alias import T, WhereType, IdType, WhereCondition
 from .__dataclasses import PgColumn
+
+if TYPE_CHECKING is True:
+    from ..data.types._dtype import DType
 
 
 class Postgres(IConnection):
@@ -161,6 +164,7 @@ class Postgres(IConnection):
                 for _name, _value in zip(_fields_str, _res):
                     _data[_name] = _value
                 yield t(**_data)
+        _crs.close()
 
     def delete_where(self, t: Type[T], /, id: IdType = None, where: WhereType = None) -> int:
         if where is None:
@@ -189,10 +193,59 @@ class Postgres(IConnection):
         return int(_crs.rowcount)
 
     def create_table(self, t: Type[T]) -> bool:
-        return super().create_table(t)
+        _schema: str = t.__schema__ if t.__schema__ is not None else 'public'
+        _tbl: SQL = self._get_table_from_obj(t)
+        _queries: List[SQL] = []
+        if self.table_exists(t.__table__, _schema):
+            # Table exists, edit
+            _definition: List[PgColumn] = self.describe_table(
+                t.__table__, _schema)
+            _cols: List[str] = []
+            _dtype: 'DType'
+            for _, _dtype in t.get_fields():
+                _col: str = _dtype.field.lower().strip()
+                _cols.append(_col)
+                _found: List[PgColumn] = list(
+                    filter(lambda x: _col == x.column_name.lower().strip(), _definition))
+                _found_col: Union[PgColumn, None] = None
+                if len(_found) == 1:
+                    _found_col = _found[0]
+                del _found
+                if _found_col is None:
+                    pass  # TODO: add column
+                else:
+                    pass  # TODO: check if it's the same
+            _cols_to_drop: List[PgColumn] = list(
+                filter(lambda x: x.column_name.lower().strip() not in _cols, _definition))
+            for _col_to_drop in _cols_to_drop:
+                _queries.append(SQL('ALTER TABLE {0} DROP COLUMN {1} CASCADE').format(
+                    _tbl,
+                    Identifier(_col_to_drop.column_name)
+                ))
+        else:
+            pass  # TODO: Create table
+        if len(_queries) == 0:
+            return True
+        _crs: cursor = self.client.cursor()
+        try:
+            for _query in _queries:
+                _crs.execute(_query)
+            self.client.commit()
+            _crs.close()
+            return True
+        except Exception:
+            return False
 
-    def drop_table(self, t: Type[T]) -> bool:
-        return super().drop_table(t)
+    def drop_table(self, t: Type[T], cascade: bool = True) -> bool:
+        _query: SQL = SQL('DROP TABLE IF EXISTS {0}{1}').format(
+            self._get_table_from_obj(t),
+            SQL(' CASCADE') if cascade is True else SQL('')
+        )
+        _crs: cursor = self.client.cursor()
+        _crs.execute(_query)
+        self.client.commit()
+        _crs.close()
+        return True
 
     def describe_table(self, table: str, schema: str = 'public') -> List[PgColumn]:
         _query: SQL = SQL('''SELECT

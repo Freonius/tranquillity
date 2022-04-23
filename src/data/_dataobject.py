@@ -21,7 +21,6 @@ from bson import ObjectId
 from typing_utils import issubtype
 from .types._dtype import DType
 from .types._id import Id, MongoId, StrId
-from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError, ConnectionException
 from ..settings.__interface import ISettings
 from ..query._where import WhereCondition
