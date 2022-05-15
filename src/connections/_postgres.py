@@ -1,7 +1,8 @@
 
 from typing import Any, Callable, List, Union, Dict, Tuple, Iterator, Type, TYPE_CHECKING
 from datetime import date, time, datetime
-from psycopg2 import connect, cursor
+from psycopg2 import connect
+from psycopg2._psycopg import cursor
 from psycopg2._psycopg import connection
 from psycopg2.sql import SQL, Identifier
 from ..exceptions import ConnectionException
@@ -196,12 +197,12 @@ class Postgres(IConnection):
         _schema: str = t.__schema__ if t.__schema__ is not None else 'public'
         _tbl: SQL = self._get_table_from_obj(t)
         _queries: List[SQL] = []
+        _dtype: 'DType'
         if self.table_exists(t.__table__, _schema):
             # Table exists, edit
             _definition: List[PgColumn] = self.describe_table(
                 t.__table__, _schema)
             _cols: List[str] = []
-            _dtype: 'DType'
             for _, _dtype in t.get_fields():
                 _col: str = _dtype.field.lower().strip()
                 _cols.append(_col)
@@ -210,20 +211,25 @@ class Postgres(IConnection):
                 _found_col: Union[PgColumn, None] = None
                 if len(_found) == 1:
                     _found_col = _found[0]
-                del _found
+                del _found, _col
                 if _found_col is None:
                     pass  # TODO: add column
                 else:
                     pass  # TODO: check if it's the same
             _cols_to_drop: List[PgColumn] = list(
                 filter(lambda x: x.column_name.lower().strip() not in _cols, _definition))
+            del _cols, _definition
             for _col_to_drop in _cols_to_drop:
                 _queries.append(SQL('ALTER TABLE {0} DROP COLUMN {1} CASCADE').format(
                     _tbl,
                     Identifier(_col_to_drop.column_name)
                 ))
+            del _cols_to_drop
         else:
-            pass  # TODO: Create table
+            for _, _dtype in t.get_fields():
+
+                pass  # TODO: Create table
+
         if len(_queries) == 0:
             return True
         _crs: cursor = self.client.cursor()
@@ -232,7 +238,7 @@ class Postgres(IConnection):
                 _crs.execute(_query)
             self.client.commit()
             _crs.close()
-            return True
+            return self.table_exists(t.__table__, _schema) is True
         except Exception:
             return False
 

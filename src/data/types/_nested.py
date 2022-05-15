@@ -149,3 +149,49 @@ class NSNested(NSDType[T], Generic[T]):
             nullable=self._nullable,
             primary_key=self.is_primary_key,
         )
+
+
+class Ref(DType[T], Generic[T]):
+    _is_dict = True
+
+    def __init__(self,
+                 t: Type[T],
+                 value: Union[T, None] = None,
+                 *,
+                 field: Union[str, None] = None,
+                 required: bool = True,
+                 default: Union[T, None] = None,
+                 json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
+        self._t = t
+        super().__init__(field, value, False, required, default,
+                         True, json_field, indexable, filterable, exclude)
+
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+        if self._value is not None:
+            for k, v in self._value.items():
+                yield k, v
+
+    def to_dict(self) -> TDict[str, Any]:
+        if self._value is None:
+            return {}
+        return self._value.to_dict()
+
+    def _ggt(self) -> Any:
+        return self._t.to_graphql()
+
+    def get_sqlalchemy_column(self) -> Column:
+        return Column(
+            self.field, JSON,
+            default=self._default,
+            nullable=self._nullable,
+            primary_key=self.is_primary_key,
+        )
+
+    def create_table(self, connection) -> bool:
+        pass  # TODO
+
+    def get_data(self, connection) -> None:
+        pass  # TODO
