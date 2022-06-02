@@ -1,11 +1,6 @@
 from typing import List, Union, TypeVar, Type
 from bs4 import BeautifulSoup, NavigableString, Tag
-from .tags._interface import IHtmlElement
-from .tags._body import Body
-from .tags._html import Html
-from .tags._head import Head
-from .tags._headers import H1, H2, H3, H4, H5, H6
-from .tags._a import A, Abbr, Address, Area, Article, Aside, Audio
+from .tags import ALL_TAGS, Body, Html, IHtmlElement
 
 T = TypeVar('T', bound=IHtmlElement)
 
@@ -17,25 +12,25 @@ class Document:
         self._parser = parser
 
     def getElementById(self, id: str) -> IHtmlElement:
-        _matches = self._parser.html.find('#' + id)
+        _matches = self._parser.html.find('#' + id)  # type: ignore
         if _matches is None:
             raise Exception
         if isinstance(_matches, list):
             if len(_matches) >= 1:
-                return _matches[0]
+                return _matches[0]  # type: ignore
             raise Exception
-        return _matches
+        return _matches  # type: ignore
 
     def getElementsByClassName(self, class_name: str) -> List[IHtmlElement]:
-        _elements = self._parser.html.find('.' + class_name)
+        _elements = self._parser.html.find('.' + class_name)  # type: ignore
         if _elements is None:
             return []
         if not isinstance(_elements, list):
             _elements = [_elements]
-        return _elements
+        return _elements  # type: ignore
 
     def getElementsByTagName(self, tag: Type[T]) -> List[T]:
-        _elements = self._parser.html.find(tag.get_tag_name())
+        _elements = self._parser.html.find(tag.get_tag_name())  # type: ignore
         if _elements is None:
             return []
         if not isinstance(_elements, list):
@@ -47,7 +42,7 @@ class Document:
         return _out
 
     def getElementByText(self, pattern: str) -> List[IHtmlElement]:
-        return self._parser.html.pattern_find(pattern)
+        return self._parser.html.pattern_find(pattern)  # type: ignore
 
 
 def _parse(tag: Union[Tag, NavigableString], parent: Union[IHtmlElement, None]) -> Union[Html, None]:
@@ -58,38 +53,8 @@ def _parse(tag: Union[Tag, NavigableString], parent: Union[IHtmlElement, None]) 
     else:
         tag_name: str = tag.name.lower().strip()
         _tag: Union[IHtmlElement, None] = None
-        if tag_name == 'head':
-            _tag = Head()
-        elif tag_name == 'body':
-            _tag = Body()
-        elif tag_name == 'h1':
-            _tag = H1()
-        elif tag_name == 'h2':
-            _tag = H2()
-        elif tag_name == 'h3':
-            _tag = H3()
-        elif tag_name == 'h4':
-            _tag = H4()
-        elif tag_name == 'h5':
-            _tag = H5()
-        elif tag_name == 'h6':
-            _tag = H6()
-        elif tag_name == 'html':
-            _tag = Html()
-        elif tag_name == 'a':
-            _tag = A()
-        elif tag_name == 'abbr':
-            _tag = Abbr()
-        elif tag_name == 'address':
-            _tag = Address()
-        elif tag_name == 'area':
-            _tag = Area()
-        elif tag_name == 'article':
-            _tag = Article()
-        elif tag_name == 'aside':
-            _tag = Aside()
-        elif tag_name == 'audio':
-            _tag = Audio()
+        if tag_name in ALL_TAGS.keys():
+            _tag = ALL_TAGS[tag_name](parent=parent)
         if _tag is not None:
             for _k, _v in tag.attrs.items():
                 if _k.lower().strip() == 'id':
@@ -156,5 +121,5 @@ class HtmlParser:
     def new() -> 'HtmlParser':
         return HtmlParser('<!DOCTYPE html><html><body></body></html>')
 
-    def save(self, file_name: str) -> bool:
+    def save(self, file_name: str, doc_type: str = 'html') -> bool:
         pass

@@ -1,14 +1,16 @@
-from abc import ABC, abstractclassmethod, abstractmethod
+from abc import ABC
 from re import compile, Match
 from typing import Dict, List, Pattern, Union, Type
 
 
-class IHtmlElement(ABC):
+class _IHtmlElement(ABC):
     _classes: Union[List[str], None] = None
     _children: List['IHtmlElement']
     _id: Union[str, None] = None
     _text: Union[str, None] = None
     _attributes: Dict[str, str] = {}
+    _can_have_self_closing_tag: bool = False
+    _parent: Union['IHtmlElement', None] = None
 
     def __init__(self,
                  *,
@@ -18,7 +20,8 @@ class IHtmlElement(ABC):
                  classes: Union[List[str], str, None] = None,
                  src: Union[str, None] = None,
                  href: Union[str, None] = None,
-                 attributes: Union[Dict[str, str], None] = None,) -> None:
+                 attributes: Union[Dict[str, str], None] = None,
+                 parent: Union['IHtmlElement', None] = None) -> None:
         super().__init__()
         if children is not None:
             self._children = children
@@ -37,18 +40,17 @@ class IHtmlElement(ABC):
         if attributes is not None:
             for _k, _v in attributes.items():
                 self._attributes[_k] = _v
+        self._parent = parent
 
-    # @abstractmethod
-    # def _is_allowed_child(cls, child: Union['IHtmlElement', Type['IHtmlElement']]) -> bool:
-    #     pass
+    @property
+    def parent(self) -> Union['IHtmlElement', None]:
+        return self._parent
 
-    # @abstractmethod
-    # def _can_have_children(cls) -> bool:
-    #     pass
-
-    # @abstractmethod
-    # def _can_have_text(cls) -> bool:
-    #     pass
+    @property
+    def siblings(self) -> List['IHtmlElement']:
+        if self._parent is None:
+            return []
+        return self._parent.children
 
     @property
     def href(self) -> Union[str, None]:
@@ -154,33 +156,18 @@ class IHtmlElement(ABC):
             self._classes = []
         if class_name not in self._classes:
             self._classes.append(class_name)
-        return self
+        return self  # type: ignore
 
     def remove_class(self, class_name: str) -> 'IHtmlElement':
         if self._classes is None:
-            return self
+            return self  # type: ignore
         if class_name in self._classes:
             self._classes.remove(class_name)
-        return self
+        return self  # type: ignore
 
     def add_child(self, child: 'IHtmlElement') -> 'IHtmlElement':
         self._children.append(child)
-        return self
-
-    def add_text(self, text: str) -> 'IHtmlElement':
-        # if self._text is None:
-        #     self._text = text
-        # else:
-        #     self._text += text
-        self.add_child(self._txtcls()(text=text))
-        return self
-
-    @classmethod
-    def _txtcls(cls: Type['IHtmlElement']) -> Type['IHtmlElement']:
-        class Text(cls):    # type: ignore
-            def __repr__(self) -> str:
-                return str(self.text)
-        return Text
+        return self  # type: ignore
 
     def find(self, predicate: str) -> Union['IHtmlElement', None, List['IHtmlElement']]:
         predicate = predicate.strip()
@@ -192,8 +179,8 @@ class IHtmlElement(ABC):
         _matches: List['IHtmlElement'] = []
         if self.match(predicate):
             if _is_id is True:
-                return self
-            _matches.append(self)
+                return self  # type: ignore
+            _matches.append(self)  # type: ignore
         for child in self._children:
             if not predicate in child:
                 continue
@@ -243,7 +230,7 @@ class IHtmlElement(ABC):
             return []
         _matches: List['IHtmlElement'] = []
         if self.pattern_match(pattern, recursive=False):
-            _matches.append(self)
+            _matches.append(self)  # type: ignore
         for child in self._children:
             if not child.pattern_match(pattern, recursive=True):
                 continue
@@ -267,3 +254,14 @@ class IHtmlElement(ABC):
         _href_part: str = f' href="{self.href}"' if self.href is not None else ''
         _src_part: str = f' src="{self.src}"' if self.src is not None else ''
         return f'<{self.tag}{_id_part}{_class_part}{_text_part}{_href_part}{_src_part} />'
+
+
+class Text(_IHtmlElement):
+    def __repr__(self) -> str:
+        return self._text if self._text is not None else ''
+
+
+class IHtmlElement(_IHtmlElement):
+    def add_text(self, text: str) -> 'IHtmlElement':
+        self.add_child(Text(text=text, parent=self))  # type: ignore
+        return self
