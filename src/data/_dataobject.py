@@ -440,7 +440,7 @@ class DataObject(ABC):
         raise NotImplementedError
 
     @classmethod
-    def to_api(cls: Type[T], log: Union[Logger, None] = None) -> Tuple[str, Type[RequestHandler]]:
+    def to_api(cls: Type[T], *, token_key: Union[str, None, List[str]] = None, auth: Union[None, Callable[[Dict[str, str], str], Tuple[bool, Dict[str, str]]]] = None, log: Union[Logger, None] = None) -> Tuple[str, Type[RequestHandler]]:
         if log is None:
             log = CustomLogger(cls.__settings__)
 
@@ -448,6 +448,9 @@ class DataObject(ABC):
             __object__: Type[T] = cls
             _mylog: Union[Logger, None] = log
             _start: Union[datetime, None] = None
+            _auth: Union[None, Callable[[Dict[str, str], str],
+                                        Tuple[bool, Dict[str, str]]]] = auth
+            _token_key: Union[str, None, List[str]] = token_key
 
             def write_error(self, status_code: int, **kwargs: Any) -> None:
                 self.add_header('Content-Type', 'application/json')
@@ -474,6 +477,23 @@ class DataObject(ABC):
                     self._start = datetime.now()
                 if self._mylog is not None:
                     self._mylog.debug(f'Started request: [{_method}] {_uri}')
+                if _method in self.__object__.__permissions__.keys() and \
+                        self.__object__.__permissions__[_method].lower().strip() != 'public':
+                    _is_authorised: bool = False
+                    _additional_headers: Dict[str, str] = {}
+                    if self._auth is not None:
+                        _d: Dict[str, str] = {}
+                        for _k, _h in self.request.headers.get_all():
+                            if (isinstance(self._token_key, str) and _k == self._token_key) or \
+                                    (isinstance(self._token_key, list) and _k in self._token_key):
+                                _d[_k] = _h
+                        if len(_d.keys()) > 0:
+                            _is_authorised, _additional_headers = self._auth(_d, self.__object__.__permissions__[
+                                _method].lower().strip())
+                        for _ak, _ah in _additional_headers.items():
+                            self.add_header(_ak, _ah)
+                    if _is_authorised is False:
+                        raise HTTPError(status_code=401)
                 return super().prepare()
 
             def on_finish(self) -> None:
