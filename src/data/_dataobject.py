@@ -48,6 +48,7 @@ class DataObject(ABC):
         'DELETE': 'public'
     }
     __readonly__: bool = False
+    __user_field__: Union[str, None] = None
 
     def __init__(self: T, **data) -> None:
         # TODO: Get things from isettings
@@ -62,7 +63,7 @@ class DataObject(ABC):
     def set_permission(cls: Type[T], method: str, permission: str) -> None:
         method = method.strip().upper()
         permission = permission.strip().lower()
-        if permission not in ('public', 'user', 'admin', 'sa'):
+        if permission not in ('public', 'user', 'admin', 'sa', 'self'):
             raise ValueError
         if method not in ('GET', 'POST', 'PUT', 'DELETE'):
             raise ValueError
@@ -525,6 +526,7 @@ class DataObject(ABC):
                         conditions.append(
                             eval(f'self.__object__.{fld}') == self.get_argument(fld))
                         continue
+                # TODO: Add user to where conditions
                 _out: List[T] = list(
                     self.__object__.get_from_db(id=id, where=conditions))
                 if id is not None and len(_out) == 0:
@@ -542,6 +544,7 @@ class DataObject(ABC):
                 if not isinstance(_data, dict):
                     raise TypeError('Body is not a dict')
                 _obj: T = self.__object__(**_data)
+                # TODO: check user
                 _obj.validate()
                 _obj.add_to_db()
                 if __debug__ and self._mylog is not None:
@@ -558,6 +561,7 @@ class DataObject(ABC):
                     raise HTTPError(405)
                 _obj: T = self.__object__(
                     **_data, **{str(self.__object__.get_id_field()): id})
+                # TODO: Check user
                 _obj.validate()
                 _obj.add_to_db()
                 if __debug__ and self._mylog is not None:
@@ -571,6 +575,7 @@ class DataObject(ABC):
                     id = None
                 if id is None:
                     raise HTTPError(405)
+                # TODO: Check user
                 _success = self.__object__.delete_from_db_where(id=id)
                 if _success == 0:
                     raise HTTPError(404)

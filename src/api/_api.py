@@ -1,6 +1,6 @@
 from typing import Tuple, Union, List, Type, Dict
 from logging import Logger
-from types import TracebackType
+from types import NotImplementedType, TracebackType
 from abc import ABC, abstractmethod
 from tornado.web import Application
 from tornado.ioloop import IOLoop
@@ -50,6 +50,8 @@ class Api(ABC):
             entity.__conn__ = self._default_connection
         if entity.__settings__ is None:
             entity.__settings__ = self._settings
+        if isinstance(entity.__table__, NotImplementedType):
+            entity.__table__ = entity.__name__.lower()
         self._entities.append(entity)
         return self
 
