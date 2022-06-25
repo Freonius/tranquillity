@@ -1,4 +1,4 @@
-FROM python:3.10-alpine AS build
+FROM python:3.11.0a5-alpine AS build
 
 WORKDIR /app/
 
@@ -11,7 +11,7 @@ RUN apk --update add --no-cache g++ bash libffi-dev && \
 
 CMD [ "python" ]
 
-FROM python:3.10-alpine
+FROM python:3.11.0a5-alpine
 
 WORKDIR /app/
 
