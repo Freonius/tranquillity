@@ -39,12 +39,16 @@ class Float(DType[float]):
                  greater_then_or_equal_to_zero: bool = False,
                  between: Union[Tuple[float, float], None] = None,
                  is_in: Union[None, Iterable[float]] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,
                  ) -> None:
         self._gt_zero = greater_than_zero
         self._ge_zero = greater_then_or_equal_to_zero
         self._between = between
         self._in = is_in
-        super().__init__(field, value, is_id, required, default, nullable, json_field)
+        super().__init__(field, value, is_id, required, default,
+                         nullable, json_field, indexable, filterable, exclude)
 
     def _more_validation(self) -> None:
         _val(self._value, self._gt_zero, self._ge_zero, self._between, self._in)
@@ -93,12 +97,16 @@ class NSFloat(NSDType[float]):
                  greater_then_or_equal_to_zero: bool = False,
                  between: Union[Tuple[float, float], None] = None,
                  is_in: Union[None, Iterable[float]] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,
                  ) -> None:
         self._gt_zero = greater_than_zero
         self._ge_zero = greater_then_or_equal_to_zero
         self._between = between
         self._in = is_in
-        super().__init__(field, value, is_id, required, default, json_field)
+        super().__init__(field, value, is_id, required, default,
+                         json_field, indexable, filterable, exclude)
 
     def _more_validation(self) -> None:
         _val(self._value, self._gt_zero, self._ge_zero, self._between, self._in)

@@ -33,7 +33,10 @@ class Date(DType[date]):
                  is_id: bool = False,
                  required: bool = True,
                  default: Union[date, str, None] = None,
-                 nullable: bool = True, json_field: Union[str, None] = None) -> None:
+                 nullable: bool = True, json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         value = _convert(value)
         if value is not None:
             value = value.date()
@@ -43,7 +46,8 @@ class Date(DType[date]):
         if format is None:
             format = '%Y-%m-%d'
         self._format = format
-        super().__init__(field, value, is_id, required, default, nullable, json_field)
+        super().__init__(field, value, is_id, required, default,
+                         nullable, json_field, indexable, filterable, exclude)
 
     def get_sqlalchemy_column(self) -> Column:
         return Column(
@@ -80,7 +84,10 @@ class NSDate(NSDType[date]):
                  is_id: bool = False,
                  required: bool = True,
                  default: Union[date, str, None] = None,
-                 json_field: Union[str, None] = None) -> None:
+                 json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         value = _convert(value)
         if value is not None:
             value = value.date()
@@ -90,7 +97,8 @@ class NSDate(NSDType[date]):
         if format is None:
             format = '%Y-%m-%d'
         self._format = format
-        super().__init__(field, value, is_id, required, default, json_field)
+        super().__init__(field, value, is_id, required, default,
+                         json_field, indexable, filterable, exclude)
 
     def get_sqlalchemy_column(self) -> Column:
         return Column(

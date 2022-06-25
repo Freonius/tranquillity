@@ -8,8 +8,9 @@ from ._hazelcast import Hazelcast
 from ._kafka import Kafka
 from ._mqqt import Mqqt
 from ._mysql import MySql
-# from ._postgres import Postgres
+from ._postgres import Postgres
 from ._redis import Redis
 from ._sqlite import Sqlite
 from ._sqlserver import SqlServer
 from ._zeromq import ZeroMq
+from ._sqlalchemy import Sql

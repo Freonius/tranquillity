@@ -71,6 +71,7 @@ class Path(Text):
 
     def __init__(self,
                  value: Union[str, None] = None,
+                 *,
                  field: Union[str, None] = None,
                  primary_key: bool = False,
                  required: bool = True,
@@ -88,15 +89,21 @@ class Path(Text):
                  min_length: Union[int, None] = None,
                  max_length: Union[int, None] = None,
                  auto_strip: bool = True,
-                 uppercase: bool = False, lowercase: bool = False) -> None:
+                 uppercase: bool = False, lowercase: bool = False,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         self._absolute = absolute
         self._check_is_dir = check_is_dir
         self._check_is_file = check_is_file
         self._create = create
         self._mode = mode
-        super().__init__(value, field, primary_key, required, default, nullable, json_field,
-                         not_empty, pattern, transform, min_length, max_length,
-                         auto_strip, uppercase, lowercase)
+        super().__init__(value, field=field, primary_key=primary_key, required=required,
+                         default=default, json_field=json_field,
+                         not_empty=not_empty, pattern=pattern,
+                         transform=transform, min_length=min_length, max_length=max_length,
+                         auto_strip=auto_strip, uppercase=uppercase, lowercase=lowercase,
+                         indexable=indexable, filterable=filterable, exclude=exclude, nullable=nullable)
 
 
 class NSPath(NSText):
@@ -118,6 +125,7 @@ class NSPath(NSText):
 
     def __init__(self,
                  value: Union[str, None] = None,
+                 *,
                  field: Union[str, None] = None,
                  primary_key: bool = False,
                  required: bool = True,
@@ -134,12 +142,18 @@ class NSPath(NSText):
                  min_length: Union[int, None] = None,
                  max_length: Union[int, None] = None,
                  auto_strip: bool = True,
-                 uppercase: bool = False, lowercase: bool = False) -> None:
+                 uppercase: bool = False, lowercase: bool = False,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         self._absolute = absolute
         self._check_is_dir = check_is_dir
         self._check_is_file = check_is_file
         self._create = create
         self._mode = mode
-        super().__init__(value, field, primary_key, required, default, json_field,
-                         not_empty, pattern, transform, min_length, max_length,
-                         auto_strip, uppercase, lowercase)
+        super().__init__(value, field=field, primary_key=primary_key, required=required,
+                         default=default, json_field=json_field,
+                         not_empty=not_empty, pattern=pattern,
+                         transform=transform, min_length=min_length, max_length=max_length,
+                         auto_strip=auto_strip, uppercase=uppercase, lowercase=lowercase,
+                         indexable=indexable, filterable=filterable, exclude=exclude)

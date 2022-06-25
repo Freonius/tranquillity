@@ -21,6 +21,9 @@ class Ip(Text):
                  default: Union[str, None] = None,
                  nullable: bool = True,
                  json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,
                  ) -> None:
         super().__init__(value, field, primary_key, required, default, nullable, json_field,
                          True, None, None, None, None, True, False, False)
@@ -42,6 +45,9 @@ class NSIp(NSText):
                  required: bool = True,
                  default: Union[str, None] = None,
                  json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,
                  ) -> None:
         super().__init__(value, field, primary_key, required, default, json_field,
                          True, None, None, None, None, True, False, False)

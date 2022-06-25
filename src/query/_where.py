@@ -1,6 +1,8 @@
-from typing import Callable, Dict, List, Tuple, Type, Union, Any, Iterable
+from typing import Callable, Dict, List, Tuple, Type, Union, Any
+from datetime import date, time, datetime
 from json import dumps
 from bson import ObjectId
+from psycopg2.sql import SQL, Identifier
 from ._enums import QueryComparison, QueryJoin, QueryType, SqlDialect
 from ._values import QWhereV, QWhereVR
 from ._utils import _fld2sql, _val2sql, type_to_querytype
@@ -320,3 +322,35 @@ def _wc2es(wcs: List, prev_data: Union[Dict[str, str], None] = None, prev_list_d
     del _check_should_not, _check_must, _check_must_not, _check_should, _add_query
 
     return dumps(_query), {}, ()
+
+
+def _v2t(v: Union[Tuple[Union[None, str, date, datetime, time, int, float, object], ...], None, str, date, datetime, time, int, float, object]) -> Tuple[Union[None, str, date, datetime, time, int, float, object], ...]:
+    if isinstance(v, tuple):
+        return v
+    return tuple([v])
+
+
+def _wc2psql(wc: WhereCondition) -> Tuple[SQL, bool, Tuple[Union[None, str, date, datetime, time, int, float, object], ...]]:
+    if wc.comparison is QueryComparison.Eq:
+        if wc.value.value is None:
+            return SQL('{0} IS NULL').format(Identifier(wc.field)), False, _v2t(wc.value.value)
+        return SQL('{0} = %s').format(Identifier(wc.field)), True, _v2t(wc.value.value)
+    if wc.comparison is QueryComparison.Ne:
+        if wc.value.value is None:
+            return SQL('{0} IS NOT NULL').format(Identifier(wc.field)), False, _v2t(wc.value.value)
+        return SQL('{0} <> %s').format(Identifier(wc.field)), True, _v2t(wc.value.value)
+    if wc.comparison is QueryComparison.Gt:
+        return SQL('{0} > %s').format(Identifier(wc.field)), True, _v2t(wc.value.value)
+    if wc.comparison is QueryComparison.Gte:
+        return SQL('{0} >= %s').format(Identifier(wc.field)), True, _v2t(wc.value.value)
+    if wc.comparison is QueryComparison.Lt:
+        return SQL('{0} < %s').format(Identifier(wc.field)), True, _v2t(wc.value.value)
+    if wc.comparison is QueryComparison.Lte:
+        return SQL('{0} <= %s').format(Identifier(wc.field)), True, _v2t(wc.value.value)
+    if wc.comparison is QueryComparison.Like:
+        return SQL('{0} LIKE %s').format(Identifier(wc.field)), True, _v2t(wc.value.value)
+    if wc.comparison is QueryComparison.NotLike:
+        return SQL('{0} NOT LIKE %s').format(Identifier(wc.field)), True, _v2t(wc.value.value)
+    if wc.comparison is QueryComparison.Between and isinstance(wc.value.value, tuple):
+        return SQL('{0} BETWEEN %s AND %s').format(Identifier(wc.field)), True, _v2t(wc.value.value)
+    raise QueryFormatError

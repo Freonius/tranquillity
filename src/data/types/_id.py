@@ -16,11 +16,11 @@ class Id(Int):
                  auto_increment: bool = True,
                  required: bool = True, json_field: Union[str, None] = None,
                  between: Union[Tuple[int, int], None] = None,
-                 is_in: Union[None, Iterable[int]] = None) -> None:
+                 is_in: Union[None, Iterable[int]] = None, exclude: bool = False) -> None:
         self._auto_increment = auto_increment
         super().__init__(value, field, is_id=True, required=required, default=None, nullable=True,
                          json_field=json_field, greater_than_zero=True,
-                         greater_then_or_equal_to_zero=False, between=between, is_in=is_in)
+                         greater_then_or_equal_to_zero=False, between=between, is_in=is_in, exclude=exclude)
 
     def get_sqlalchemy_column(self) -> Column:
         return Column(
@@ -53,11 +53,12 @@ class MongoId(DType[ObjectId]):
                  is_id: bool = True,
                  required: bool = True,
                  generate: bool = False,
-                 json_field: Union[str, None] = None) -> None:
+                 json_field: Union[str, None] = None, exclude: bool = False) -> None:
         default: Union[ObjectId, None] = None
         if generate:
             default = ObjectId()
-        super().__init__(field, value, is_id, required, default, True, json_field)
+        super().__init__(field, value, is_id, required,
+                         default, True, json_field, True, True, exclude)
 
     def _ggt(self) -> Any:
         return String
@@ -71,9 +72,12 @@ class StrId(DString):
                  value: Union[str, None] = None,
                  field: Union[str, None] = '_id',
                  default: Union[str, None] = None,
-                 json_field: Union[str, None] = '_id') -> None:
-        super().__init__(value, field, True, True, default, True, json_field,
-                         True, None, None, None, None, True, False, False)
+                 json_field: Union[str, None] = '_id',
+                 exclude: bool = False,) -> None:
+        super().__init__(value=value, field=field, primary_key=True,
+                         required=True, default=default, nullable=True,
+                         json_field=json_field, not_empty=True, auto_strip=True,
+                         indexable=True, filterable=True, exclude=exclude)
 
     def serialize(self) -> Union[str, None]:
         return self._value

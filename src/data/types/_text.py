@@ -56,6 +56,7 @@ class Text(DType[str]):
 
     def __init__(self,
                  value: Union[str, None] = None,
+                 *,
                  field: Union[str, None] = None,
                  primary_key: bool = False,
                  required: bool = True,
@@ -70,6 +71,9 @@ class Text(DType[str]):
                  auto_strip: bool = True,
                  uppercase: bool = False,
                  lowercase: bool = False,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,
                  ) -> None:
         self._not_empty = not_empty
         if isinstance(pattern, str):
@@ -84,7 +88,8 @@ class Text(DType[str]):
         self._autostrip = auto_strip
         self._upper = uppercase
         self._lower = lowercase
-        super().__init__(field, value, primary_key, required, default, nullable, json_field)
+        super().__init__(field, value, primary_key, required, default,
+                         nullable, json_field, indexable, filterable, exclude)
 
     def _more_validation(self) -> None:
         _more_validation(self._value, self._not_empty,
@@ -127,6 +132,7 @@ class NSText(NSDType[str]):
 
     def __init__(self,
                  value: Union[str, None] = None,
+                 *,
                  field: Union[str, None] = None,
                  primary_key: bool = False,
                  required: bool = True,
@@ -140,6 +146,9 @@ class NSText(NSDType[str]):
                  auto_strip: bool = True,
                  uppercase: bool = False,
                  lowercase: bool = False,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,
                  ) -> None:
         self._not_empty = not_empty
         if isinstance(pattern, str):
@@ -154,7 +163,8 @@ class NSText(NSDType[str]):
         self._autostrip = auto_strip
         self._upper = uppercase
         self._lower = lowercase
-        super().__init__(field, value, primary_key, required, default, json_field)
+        super().__init__(field, value, primary_key, required,
+                         default, json_field, indexable, filterable, exclude)
 
     def _more_validation(self) -> None:
         _more_validation(self._value, self._not_empty,

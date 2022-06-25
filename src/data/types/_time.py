@@ -44,13 +44,17 @@ class Time(DType[time]):
                  is_id: bool = False,
                  required: bool = True,
                  default: Union[time, str, None, datetime] = None,
-                 nullable: bool = True, json_field: Union[str, None] = None) -> None:
+                 nullable: bool = True, json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         value = _convert(value)
         default = _convert(default)
         if format is None:
             format = 'H:%M:%S.%f'
         self._format = format
-        super().__init__(field, value, is_id, required, default, nullable, json_field)
+        super().__init__(field, value, is_id, required, default,
+                         nullable, json_field, indexable, filterable, exclude)
 
     def get_sqlalchemy_column(self) -> Column:
         return Column(
@@ -84,13 +88,17 @@ class NSTime(NSDType[time]):
                  is_id: bool = False,
                  required: bool = True,
                  default: Union[datetime, time, str, None] = None,
-                 json_field: Union[str, None] = None) -> None:
+                 json_field: Union[str, None] = None,
+                 indexable: bool = True,
+                 filterable: bool = True,
+                 exclude: bool = False,) -> None:
         value = _convert(value)
         default = _convert(default)
         if format is None:
             format = '%H:%M:%S.%f'
         self._format = format
-        super().__init__(field, value, is_id, required, default, json_field)
+        super().__init__(field, value, is_id, required, default,
+                         json_field, indexable, filterable, exclude)
 
     def get_sqlalchemy_column(self) -> Column:
         return Column(

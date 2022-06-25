@@ -1,10 +1,11 @@
 from abc import ABC
 from types import NotImplementedType
-from typing import Any, Callable, Dict, List, Tuple, Union, Iterator, Iterable, TypeVar, Type, TYPE_CHECKING
+from typing import Any, Awaitable, Callable, Dict, List, Tuple, Union, Iterator, Iterable, TypeVar, Type, TYPE_CHECKING
 from inspect import getmembers
 from json import loads, dumps
 from copy import deepcopy
 from datetime import date, datetime
+from logging import Logger
 from io import StringIO
 from string import Template
 from rule_engine import type_resolver_from_dict, Context, DataType, Rule
@@ -17,12 +18,13 @@ from numpy import dtype
 from tornado.web import RequestHandler, HTTPError
 from tornado.escape import json_decode
 from bson import ObjectId
+from typing_utils import issubtype
 from .types._dtype import DType
 from .types._id import Id, MongoId, StrId
-from ..utils._classproperty import classproperty
 from ..exceptions import ValidationError, ConnectionException
 from ..settings.__interface import ISettings
 from ..query._where import WhereCondition
+from ..logger._custom_logger import CustomLogger
 
 if TYPE_CHECKING is True:
     from ..connections.__interface import IConnection
@@ -39,6 +41,14 @@ class DataObject(ABC):
     __conn__: Union['IConnection', None, Type['IConnection']] = None
     __urlprefix__: str = r'/api/v1/'
     __settings__: Union[ISettings, None] = None
+    __permissions__: Dict[str, str] = {
+        'GET': 'public',
+        'POST': 'public',
+        'PUT': 'public',
+        'DELETE': 'public'
+    }
+    __readonly__: bool = False
+    __user_field__: Union[str, None] = None
 
     def __init__(self: T, **data) -> None:
         # TODO: Get things from isettings
@@ -48,6 +58,16 @@ class DataObject(ABC):
         for key, val in data.items():
             self[key] = val
         # self.validate()
+
+    @classmethod
+    def set_permission(cls: Type[T], method: str, permission: str) -> None:
+        method = method.strip().upper()
+        permission = permission.strip().lower()
+        if permission not in ('public', 'user', 'admin', 'sa', 'self'):
+            raise ValueError
+        if method not in ('GET', 'POST', 'PUT', 'DELETE'):
+            raise ValueError
+        cls.__permissions__[method] = permission
 
     @classmethod
     def get_table(cls: Type[T]) -> str:
@@ -101,7 +121,10 @@ class DataObject(ABC):
         return type('GQL' + self.__class__.__name__, (ObjectType,), attr)
 
     def serialize(self) -> Dict[str, Any]:
-        return self.to_dict()
+        out: Dict[str, Any] = {}
+        for _, fld in self.__data__.items():
+            out[fld.json_field] = fld.serialize()
+        return out
 
     @classmethod
     def _get_rule_engine_context(cls: Type[T]) -> Context:
@@ -157,6 +180,8 @@ class DataObject(ABC):
     def to_json(self, dump: bool = True) -> Union[str, Dict[str, Any]]:
         out: Dict[str, Any] = {}
         for _, fld in self.__data__.items():
+            if fld.exclude_from_json is True:
+                continue
             out[fld.json_field] = fld.serialize()
         if dump is True:
             return dumps(out, indent=None)
@@ -205,6 +230,20 @@ class DataObject(ABC):
         self[key] = val
 
     @classmethod
+    def get_connection(cls: Type[T]) -> 'IConnection':
+        if cls.__conn__ is None:
+            raise Exception
+        _conn: 'IConnection'
+        if isinstance(cls.__conn__, type):
+            _conn = cls.__conn__(cls.__settings__)
+            cls.__conn__ = _conn
+        else:
+            _conn = cls.__conn__
+        if not _conn.is_connected:
+            _conn.connect()
+        return _conn
+
+    @classmethod
     def create_table(cls: Type[T]) -> bool:
         if cls.__conn__ is None:
             raise Exception
@@ -214,39 +253,26 @@ class DataObject(ABC):
         else:
             _conn = cls.__conn__
         _out: bool = False
-        with _conn:
-            _out = _conn.create_table(cls)
+        if not _conn.is_connected:
+            _conn.connect()
+        _out = _conn.create_table(cls)
         return _out
 
     @classmethod
     def drop_table(cls: Type[T]) -> bool:
-        if cls.__conn__ is None:
-            raise Exception
-        _conn: 'IConnection'
-        if isinstance(cls.__conn__, type):
-            _conn = cls.__conn__(cls.__settings__)
-        else:
-            _conn = cls.__conn__
+        _conn: 'IConnection' = cls.get_connection()
         _out: bool = False
-        with _conn:
-            _out = _conn.drop_table(cls)
+        _out = _conn.drop_table(cls)
         return _out
 
     def add_to_db(self: T, mode: str = 'upsert') -> bool:
-        if self.__conn__ is None:
-            raise Exception
-        _conn: 'IConnection'
-        if isinstance(self.__conn__, type):
-            _conn = self.__conn__(self.__settings__)
-        else:
-            _conn = self.__conn__
+        _conn: 'IConnection' = self.get_connection()
         _res: Tuple[Union[T, None], Any, bool] = (None, None, False)
-        with _conn:
-            if mode == 'insert' or (mode == 'upsert' and self.get_id() is None):
-                _res = _conn.insert(self)
-            elif mode == 'update' or (mode == 'upsert' and self.get_id() is not None):
-                _, _success = _conn.update(self, id=self.get_id())
-                _res = (None, None, _success)
+        if mode == 'insert' or (mode == 'upsert' and self.get_id() is None):
+            _res = _conn.insert(self)
+        elif mode == 'update' or (mode == 'upsert' and self.get_id() is not None):
+            _, _success = _conn.update(self, id=self.get_id())
+            _res = (None, None, _success)
         if _res[1] is not None:
             self.set_id(_res[1])
         return _res[2]
@@ -275,50 +301,29 @@ class DataObject(ABC):
 
     @classmethod
     def get_from_db(cls: Type[T], id: Union[int, str, None] = None, where: Union[List[WhereCondition], WhereCondition, None] = None) -> Iterator[T]:
-        if cls.__conn__ is None:
-            raise Exception
-        _conn: 'IConnection'
-        if isinstance(cls.__conn__, type):
-            _conn = cls.__conn__(cls.__settings__)
-        else:
-            _conn = cls.__conn__
+        _conn: 'IConnection' = cls.get_connection()
         if isinstance(where, WhereCondition):
             where = [where]
-        with _conn:
-            for t in _conn.select(cls, id=id, where=where):
-                yield t
+        for t in _conn.select(cls, id=id, where=where):
+            yield t
 
     @classmethod
     def get_from_cache(cls: Type[T], id: Union[int, str, None] = None, where_conditions: Union[Iterable[str], None] = None) -> List[T]:
         raise NotImplementedError
 
     def delete_from_db(self) -> bool:
-        if self.__conn__ is None:
-            raise Exception
-        _conn: 'IConnection'
-        if isinstance(self.__conn__, type):
-            _conn = self.__conn__(self.__settings__)
-        else:
-            _conn = self.__conn__
+        _conn: 'IConnection' = self.get_connection()
         _res: bool = False
-        with _conn:
-            _res = _conn.delete(self)
+        _res = _conn.delete(self)
         return _res
 
     @classmethod
     def delete_from_db_where(cls: Type[T], id: Union[int, str, None] = None, where: Union[List[WhereCondition], WhereCondition, None] = None) -> int:
-        if cls.__conn__ is None:
-            raise Exception
-        _conn: 'IConnection'
-        if isinstance(cls.__conn__, type):
-            _conn = cls.__conn__(cls.__settings__)
-        else:
-            _conn = cls.__conn__
+        _conn: 'IConnection' = cls.get_connection()
         if isinstance(where, WhereCondition):
             where = [where]
         _out: int = 0
-        with _conn:
-            _out = _conn.delete_where(cls, id=id, where=where)
+        _out = _conn.delete_where(cls, id=id, where=where)
         return _out
 
     def delete_from_cache(self) -> bool:
@@ -363,8 +368,8 @@ class DataObject(ABC):
         return True
 
     @classmethod
-    def to_es_mapping(cls) -> Dict[str, Dict[str, Dict[str, Dict[str, str]]]]:
-        def _to_es_type(x: DType) -> Dict[str, str]:
+    def to_es_mapping(cls: Type[T]) -> Dict[str, Dict[str, Dict[str, Dict[str, Union[str, bool]]]]]:
+        def _to_es_type(x: DType) -> Dict[str, Union[str, bool]]:
             _t: str = 'text'
             if x.get_type() is str:
                 _t = 'text'
@@ -374,10 +379,10 @@ class DataObject(ABC):
                 _t = 'float'
             if x.get_type() is datetime or x.get_type() is date:
                 _t = 'date'
-            if x.is_dict is True:
-                _t = 'nested'
+            if x.is_dict is True or issubtype(x.get_type(), cls.__base__):
+                return {'type': 'nested'}
 
-            return {'type': _t}    # TODO
+            return {'type': _t, 'index': x.is_indexable}    # TODO
         _tps: List[DType] = []
         for _, _tp in cls.get_fields():
             if _tp.field == '_id':
@@ -436,9 +441,17 @@ class DataObject(ABC):
         raise NotImplementedError
 
     @classmethod
-    def to_api(cls: Type[T]) -> Tuple[str, Type[RequestHandler]]:
+    def to_api(cls: Type[T], *, token_key: Union[str, None, List[str]] = None, auth: Union[None, Callable[[Dict[str, str], str], Tuple[bool, Dict[str, str]]]] = None, log: Union[Logger, None] = None) -> Tuple[str, Type[RequestHandler]]:
+        if log is None:
+            log = CustomLogger(cls.__settings__)
+
         class DataRequest(RequestHandler):
             __object__: Type[T] = cls
+            _mylog: Union[Logger, None] = log
+            _start: Union[datetime, None] = None
+            _auth: Union[None, Callable[[Dict[str, str], str],
+                                        Tuple[bool, Dict[str, str]]]] = auth
+            _token_key: Union[str, None, List[str]] = token_key
 
             def write_error(self, status_code: int, **kwargs: Any) -> None:
                 self.add_header('Content-Type', 'application/json')
@@ -447,24 +460,73 @@ class DataObject(ABC):
                     if isinstance(kwargs['exc_info'], tuple):
                         for x in kwargs['exc_info']:
                             if isinstance(x, Exception):
+                                if self._mylog is not None and not isinstance(x, HTTPError):
+                                    self._mylog.exception(x)
                                 _msg = str(x)
+                if self._mylog is not None:
+                    self._mylog.error(
+                        f'Got status code {status_code} with message {_msg}')
                 self.write({'result': None, 'success': False, 'status_code': status_code,
                             'message': _msg, 'datetime': datetime.now().isoformat()})
                 self.set_status(status_code)
 
-            def get(self, id: Union[int, str, None]):
+            def prepare(self) -> Union[Awaitable[None], None]:
                 self.add_header('Content-Type', 'application/json')
+                _method: str = str(self.request.method).upper()
+                _uri: str = str(self.request.uri)
+                if __debug__:
+                    self._start = datetime.now()
+                if self._mylog is not None:
+                    self._mylog.debug(f'Started request: [{_method}] {_uri}')
+                if _method in self.__object__.__permissions__.keys() and \
+                        self.__object__.__permissions__[_method].lower().strip() != 'public':
+                    _is_authorised: bool = False
+                    _additional_headers: Dict[str, str] = {}
+                    if self._auth is not None:
+                        _d: Dict[str, str] = {}
+                        for _k, _h in self.request.headers.get_all():
+                            if (isinstance(self._token_key, str) and _k == self._token_key) or \
+                                    (isinstance(self._token_key, list) and _k in self._token_key):
+                                _d[_k] = _h
+                        if len(_d.keys()) > 0:
+                            _is_authorised, _additional_headers = self._auth(_d, self.__object__.__permissions__[
+                                _method].lower().strip())
+                        for _ak, _ah in _additional_headers.items():
+                            self.add_header(_ak, _ah)
+                    if _is_authorised is False:
+                        raise HTTPError(status_code=401)
+                return super().prepare()
+
+            def on_finish(self) -> None:
+                _method: str = str(self.request.method).upper()
+                _uri: str = str(self.request.uri)
+                _sc: int = self.get_status()
+                _ms: int = 0
+                if __debug__ and self._start is not None:
+                    _ms = (datetime.now() - self._start).microseconds
+                    self._start = None
+                if _ms > 0 and __debug__ and self._mylog is not None:
+                    self._mylog.debug(
+                        f'[{_method}] {_uri} Took {_ms * 0.001}ms')
+                if self._mylog is not None:
+                    self._mylog.info(
+                        f'{_sc} [{_method}] {_uri}')
+                return super().on_finish()
+
+            def get(self, id: Union[int, str, None]):
                 if isinstance(id, str) and len(id.strip()) == 0:
                     id = None
                 if self.__object__.__conn__ is None:
                     raise ConnectionException('No db connection')
                 conditions = []
 
-                for fld, _ in self.__object__.get_fields():
-                    if fld in self.request.arguments.keys():
+                for fld, dty in self.__object__.get_fields():
+                    if (fld in self.request.arguments.keys() or dty.json_field in self.request.arguments.keys()) \
+                            and dty.is_filterable is True:
                         conditions.append(
                             eval(f'self.__object__.{fld}') == self.get_argument(fld))
                         continue
+                # TODO: Add user to where conditions
                 _out: List[T] = list(
                     self.__object__.get_from_db(id=id, where=conditions))
                 if id is not None and len(_out) == 0:
@@ -482,7 +544,11 @@ class DataObject(ABC):
                 if not isinstance(_data, dict):
                     raise TypeError('Body is not a dict')
                 _obj: T = self.__object__(**_data)
+                # TODO: check user
+                _obj.validate()
                 _obj.add_to_db()
+                if __debug__ and self._mylog is not None:
+                    self._mylog.debug(f'Added {_obj}')
                 self.write({'result': _obj.to_json(False), 'success': True, 'status_code': 200,
                             'msg': 'OK', 'datetime': datetime.now().isoformat()})
                 self.set_status(200)
@@ -495,17 +561,27 @@ class DataObject(ABC):
                     raise HTTPError(405)
                 _obj: T = self.__object__(
                     **_data, **{str(self.__object__.get_id_field()): id})
+                # TODO: Check user
+                _obj.validate()
                 _obj.add_to_db()
+                if __debug__ and self._mylog is not None:
+                    self._mylog.debug(f'Updated {_obj}')
                 self.write({'result': _obj.to_json(False), 'success': True, 'status_code': 200,
                             'msg': 'OK', 'datetime': datetime.now().isoformat()})
                 self.set_status(200)
 
             def delete(self, id: Union[int, str, None] = None):
+                if isinstance(id, str) and len(id.strip()) == 0:
+                    id = None
                 if id is None:
                     raise HTTPError(405)
+                # TODO: Check user
                 _success = self.__object__.delete_from_db_where(id=id)
                 if _success == 0:
                     raise HTTPError(404)
+                if __debug__ and self._mylog is not None:
+                    self._mylog.debug(
+                        f'Deleted {self.__object__.__name__} with id {id}')
                 self.write({'result': None, 'success': True, 'status_code': 200,
                             'msg': 'OK', 'datetime': datetime.now().isoformat()})
                 self.set_status(200)
